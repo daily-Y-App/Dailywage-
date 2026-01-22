@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>📊 Advanced Income & Expense Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* CSS ဒီဇိုင်းများ (မူလအတိုင်း အပြည့်အစုံ) */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; padding-bottom: 20px; }
+        
+        .app-header { background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); color: white; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .profile-photo { width: 55px; height: 55px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+        
+        .tabs { display: flex; background: white; position: sticky; top: 0; z-index: 1000; overflow-x: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tab { flex: 1; min-width: 80px; padding: 12px 5px; text-align: center; cursor: pointer; color: #777; font-weight: bold; font-size: 11px; border-bottom: 3px solid transparent; transition: 0.3s; }
+        .tab.active { color: #b21f1f; border-bottom-color: #b21f1f; background: #fff5f5; }
+        .tab-icon { display: block; font-size: 20px; margin-bottom: 3px; }
+        
+        .content { padding: 15px; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #eee; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #444; }
+        input, select { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 15px; outline: none; }
+        
+        .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 15px rgba(178, 31, 31, 0.3); }
+        .balance-hero { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 30px 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; }
+        
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center; }
+        .modal-content { background:white; width:90%; border-radius:20px; padding:25px; text-align:center; }
+        
+        .btn-link { display: block; width: 100%; padding: 14px; text-align: center; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 10px; border:none; cursor:pointer;}
+        .btn-yapp { background: #fdbb2d; color: #1a2a6c; }
+        .delete-btn { color: #f44336; border: none; background: none; font-size: 18px; cursor: pointer; padding: 5px; }
+        .breakdown-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    </style>
+</head>
+<body> 
+    <div class="app-header">
+        <div class="profile-photo">👷</div>
+        <div>
+            <div id="headName" style="font-weight: bold; font-size: 18px;">User Name</div>
+            <div id="headCode" style="font-size: 12px; opacity: 0.9;">CODE: EMP001</div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showPage('income', this)"><span class="tab-icon">💰</span><span class="t-income">ဝင်ငွေ</span></div>
+        <div class="tab" onclick="showPage('expense', this)"><span class="tab-icon">💸</span><span class="t-expense">ထွက်ငွေ</span></div>
+        <div class="tab" onclick="showPage('history', this)"><span class="tab-icon">📜</span><span class="t-history">မှတ်တမ်း</span></div>
+        <div class="tab" onclick="showPage('weekly', this)"><span class="tab-icon">📅</span><span class="t-weekly">15ရက်</span></div>
+        <div class="tab" onclick="showPage('balance', this)"><span class="tab-icon">🧮</span><span class="t-balance">လက်ကျန်</span></div>
+        <div class="tab" onclick="showPage('graph', this)"><span class="tab-icon">📊</span><span class="t-graph">ဂရပ်</span></div>
+        <div class="tab" onclick="showPage('profile', this)"><span class="tab-icon">👤</span><span class="t-profile">Profile</span></div>
+    </div>
+
+    <div class="content">
+        <div id="income" class="page active">
+            <div class="card">
+                <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="iDate"></div>
+                <div class="form-group"><label>⏰ <span class="t-hours">အလုပ်ချိန် (နာရီ)</span></label><input type="number" id="iHours" value="8"></div>
+                <div class="form-group"><label>⏱️ <span class="t-ot">OT (နာရီ)</span></label><input type="number" id="iOt" value="0"></div>
+                <div class="form-group"><label>📅 <span class="t-bonus">ရက်မှန်ကြေး</span></label><input type="number" id="iBonus" value="0"></div>
+                <div class="form-group"><label>💵 <span class="t-extra">အပိုဝင်ငွေ</span></label><input type="number" id="iExtra" value="0"></div>
+                <button class="btn" onclick="saveData('income')">💾 <span class="t-save">သိမ်းမည်</span></button>
+            </div>
+        </div>
+
+        <div id="expense" class="page">
+            <div class="card">
+                <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="eDate"></div>
+                <div class="form-group">
+                    <label>📂 <span class="t-cat">အမျိုးအစား</span></label>
+                    <select id="eCat" onchange="checkCustom(this.value)">
+                        <option value="အိမ်လခ">🏠 အိမ်လခ</option>
+                        <option value="ခရီးစရိတ်">🚗 ခရီးစရိတ်</option>
+                        <option value="မုန့်ဖိုး">🍜 မုန့်ဖိုး</option>
+                        <option value="အထွေထွေ">📦 အထွေထွေ</option>
+                        <option value="custom">➕ အခြား</option>
+                    </select>
+                    <input type="text" id="customCat" placeholder="..." style="display:none; margin-top:10px;">
+                </div>
+                <div class="form-group"><label>💵 <span class="t-amount">ပမာဏ</span></label><input type="number" id="eAmount"></div>
+                <button class="btn" onclick="saveData('expense')">💾 <span class="t-save">သိမ်းမည်</span></button>
+            </div>
+        </div>
+
+        <div id="history" class="page"><div id="historyList"></div></div>
+        <div id="weekly" class="page">
+            <button class="btn" style="background: #333; margin-bottom:15px;" onclick="askClearAll()">🗑️ <span class="t-clear">စာရင်းအားလုံးဖျက်မည်</span></button>
+            <div id="weeklyList"></div>
+        </div>
+        <div id="balance" class="page">
+            <div class="balance-hero">
+                <div class="t-totalBal">လက်ကျန်ငွေ စုစုပေါင်း</div>
+                <h1 id="totalBal" style="font-size: 42px; margin: 5px 0;">0฿</h1>
+                <div style="font-size: 14px; background: rgba(0,0,0,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px;"><span class="t-work">အလုပ်ဆင်းရက်</span>: <span id="workCount">0</span> <span class="t-day">ရက်</span></div>
+            </div>
+            <h3 style="margin-bottom: 10px;" class="t-breakdown">အမျိုးအစားအလိုက် ခွဲပြချက်</h3>
+            <div id="breakdownList" class="card"></div>
+        </div>
+        <div id="graph" class="page"><div class="card" style="min-height: 300px;"><canvas id="myChart"></canvas></div></div>
+        <div id="profile" class="page">
+            <div class="card">
+                <div class="form-group"><label class="t-pname">အမည်</label><input type="text" id="pName"></div>
+                <div class="form-group"><label class="t-pcode">ကုတ်နံပါတ်</label><input type="text" id="pCode"></div>
+                <div class="form-group"><label class="t-pwage">တနေ့လုပ်အားခ</label><input type="number" id="pWage"></div>
+                <div class="form-group"><label class="t-pot">OT နာရီခ</label><input type="number" id="pOt"></div>
+                <div class="form-group">
+                    <label>Language</label>
+                    <select id="pLang" onchange="setLang(this.value)">
+                        <option value="my">မြန်မာ</option>
+                        <option value="en">English</option>
+                        <option value="th">ไทย</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="saveProfile()">💾 <span class="t-save">သိမ်းမည်</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 50px;">✅</div>
+            <h2 id="sTitle">Saved!</h2>
+            <div id="sMsg" style="margin-bottom: 15px;">Data saved successfully</div>
+            <button class="btn" style="background:#4CAF50;" onclick="closeModal('successModal')">DONE</button>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: #b21f1f;">Are you sure?</h2>
+            <div style="margin: 20px 0;">ဒေတာများကို ဖျက်ရန် သေချာပါသလား?</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="background: #f44336; flex:1;" onclick="confirmDelete()">DELETE</button>
+                <button class="btn" style="background: #888; flex:1;" onclick="closeModal('deleteModal')">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let records = JSON.parse(localStorage.getItem('f_recs')) || [];
+        let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my' };
+        let myChart = null;
+        let pendingDelId = null;
+
+        const langMap = {
+            my: { income:"ဝင်ငွေ", expense:"ထွက်ငွေ", history:"မှတ်တမ်း", weekly:"15ရက်", balance:"လက်ကျန်", graph:"ဂရပ်", profile:"Profile", date:"ရက်စွဲ", hours:"အလုပ်ချိန် (နာရီ)", ot:"OT (နာရီ)", bonus:"ရက်မှန်ကြေး", extra:"အပိုဝင်ငွေ", cat:"အမျိုးအစား", amount:"ပမာဏ", save:"သိမ်းမည်", clear:"စာရင်းအားလုံးဖျက်မည်", totalBal:"လက်ကျန်ငွေ စုစုပေါင်း", work:"အလုပ်ဆင်းရက်", day:"ရက်", breakdown:"အမျိုးအစားအလိုက် ခွဲပြချက်", pname:"အမည်", pcode:"ကုတ်နံပါတ်", pwage:"တနေ့လုပ်အားခ", pot:"OT နာရီခ", s_t:"သိမ်းဆည်းပြီးပါပြီ", s_m:"အောင်မြင်စွာ သိမ်းဆည်းလိုက်ပါပြီ" },
+            en: { income:"Income", expense:"Expense", history:"History", weekly:"15 Days", balance:"Balance", graph:"Graph", profile:"Profile", date:"Date", hours:"Work Hours", ot:"OT Hours", bonus:"Attendance Bonus", extra:"Extra Income", cat:"Category", amount:"Amount", save:"Save", clear:"Clear All Data", totalBal:"Total Balance", work:"Work Days", day:"Days", breakdown:"Category Breakdown", pname:"Name", pcode:"Code", pwage:"Daily Wage", pot:"OT Rate", s_t:"Saved!", s_m:"Data saved successfully" },
+            th: { income:"รายได้", expense:"รายจ่าย", history:"ประวัติ", weekly:"15 วัน", balance:"ยอดรวม", graph:"กราฟ", profile:"โปรไฟล์", date:"วันที่", hours:"ชั่วโมงงาน", ot:"โอที (ชม.)", bonus:"เบี้ยขยัน", extra:"รายได้พิเศษ", cat:"หมวดหมู่", amount:"จำนวนเงิน", save:"บันทึก", clear:"ล้างข้อมูลทั้งหมด", totalBal:"ยอดเงินคงเหลือ", work:"วันทำงาน", day:"วัน", breakdown:"รายละเอียดแยกประเภท", pname:"ชื่อ", pcode:"รหัส", pwage:"ค่าแรงรายวัน", pot:"ค่าโอที", s_t:"บันทึกแล้ว", s_m:"บันทึกข้อมูลเรียบร้อยแล้ว" }
+        };
+
+        // **အဓိကပြင်ဆင်လိုက်သည့် saveData function (စလစ်အတွက် အချက်အလက်ချိတ်ဆက်ရန်)**
+        function saveData(type) {
+            const date = document.getElementById(type==='income'?'iDate':'eDate').value;
+            if(!date) return alert("Select Date");
+            let amt = 0, cat = "", details = null;
+            if(type === 'income') {
+                const hours = parseFloat(document.getElementById('iHours').value) || 0;
+                const ot = parseFloat(document.getElementById('iOt').value) || 0;
+                const bonus = parseFloat(document.getElementById('iBonus').value) || 0;
+                const extra = parseFloat(document.getElementById('iExtra').value) || 0;
+                
+                amt = (hours/8 * profile.wage) + (ot * profile.ot) + bonus + extra;
+                cat = "ဝင်ငွေ";
+                // ဤနေရာတွင် details ကို ထည့်သွင်းပေးမှသာ စလစ် (Calendar) တွင် အချက်အလက်များ ပေါ်မည်ဖြစ်သည်
+                details = { h: hours, o: ot, b: bonus, e: extra };
+            } else {
+                amt = parseFloat(document.getElementById('eAmount').value) || 0;
+                cat = (document.getElementById('eCat').value === 'custom') ? document.getElementById('customCat').value : document.getElementById('eCat').value;
+            }
+            records.push({ id:Date.now(), type, date, amt, category:cat, details: details });
+            localStorage.setItem('f_recs', JSON.stringify(records));
+            document.getElementById('successModal').style.display = 'flex';
+        }
+
+        // ကျန်သည့် Logic များအားလုံး မူလအတိုင်း ထားရှိပါသည်
+        function showPage(id, btn) {
+            document.querySelectorAll('.page, .tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(btn) btn.classList.add('active');
+            if(id === 'balance') updateBalance();
+            if(id === 'history' || id === 'weekly') renderList(id+'List', records);
+            if(id === 'graph') renderGraph();
+        }
+
+        function checkCustom(v) { document.getElementById('customCat').style.display = (v==='custom'?'block':'none'); }
+
+        function updateBalance() {
+            const inc = records.filter(r=>r.type==='income').reduce((a,b)=>a+b.amt, 0);
+            const exp = records.filter(r=>r.type==='expense').reduce((a,b)=>a+b.amt, 0);
+            document.getElementById('totalBal').innerText = (inc - exp).toFixed(0) + '฿';
+            document.getElementById('workCount').innerText = records.filter(r=>r.type==='income').length;
+            const bDiv = document.getElementById('breakdownList'); bDiv.innerHTML = "";
+            [...new Set(records.map(r=>r.category))].forEach(c => {
+                const total = records.filter(r=>r.category===c).reduce((a,b)=>a+b.amt, 0);
+                const isInc = records.find(r=>r.category===c).type==='income';
+                bDiv.innerHTML += `<div class="breakdown-item"><span>${c}</span><span style="color:${isInc?'#4CAF50':'#F44336'}">${isInc?'+':'-'}${total.toFixed(0)}฿</span></div>`;
+            });
+        }
+
+        function renderList(target, data) {
+            const div = document.getElementById(target); div.innerHTML = "";
+            data.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(r => {
+                const isInc = r.type==='income';
+                div.innerHTML += `<div class="card" style="display:flex; justify-content:space-between; align-items:center; border-left:5px solid ${isInc?'#4CAF50':'#F44336'}">
+                    <div><b>${r.date}</b><br><small>${r.category}</small></div>
+                    <div style="text-align:right">
+                        <div style="font-weight:bold; color:${isInc?'#4CAF50':'#F44336'}">${isInc?'+':'-'}${r.amt.toFixed(0)}฿</div>
+                        <button class="delete-btn" onclick="askDelete(${r.id})">🗑️</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function askDelete(id) { pendingDelId = id; document.getElementById('deleteModal').style.display = 'flex'; }
+        function askClearAll() { pendingDelId = 'ALL'; document.getElementById('deleteModal').style.display = 'flex'; }
+        function confirmDelete() {
+            if(pendingDelId === 'ALL') { records = []; localStorage.setItem('f_recs','[]'); updateBalance(); renderList('weeklyList',[]); }
+            else if (pendingDelId !== null) { records = records.filter(r => r.id !== pendingDelId); localStorage.setItem('f_recs', JSON.stringify(records)); renderList('historyList', records); updateBalance(); }
+            closeModal('deleteModal'); pendingDelId = null;
+        }
+
+        function renderGraph() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const inc = records.filter(r=>r.type==='income').reduce((a,b)=>a+b.amt, 0);
+            const exp = records.filter(r=>r.type==='expense').reduce((a,b)=>a+b.amt, 0);
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, { type:'pie', data:{ labels:['Income','Expense'], datasets:[{ data:[inc, exp], backgroundColor:['#4CAF50','#F44336'] }] } });
+        }
+
+        function saveProfile() {
+            profile = { name: document.getElementById('pName').value, code: document.getElementById('pCode').value, wage: document.getElementById('pWage').value, ot: document.getElementById('pOt').value, lang: document.getElementById('pLang').value };
+            localStorage.setItem('f_prof', JSON.stringify(profile));
+            updateHeader(); setLang(profile.lang); alert("Saved!");
+        }
+
+        function updateHeader() { document.getElementById('headName').innerText = profile.name; document.getElementById('headCode').innerText = "CODE: " + profile.code; }
+
+        function setLang(l) {
+            const d = langMap[l];
+            document.querySelectorAll('.t-income').forEach(e => e.innerText = d.income);
+            document.querySelectorAll('.t-expense').forEach(e => e.innerText = d.expense);
+            document.querySelectorAll('.t-history').forEach(e => e.innerText = d.history);
+            document.querySelectorAll('.t-weekly').forEach(e => e.innerText = d.weekly);
+            document.querySelectorAll('.t-balance').forEach(e => e.innerText = d.balance);
+            document.querySelectorAll('.t-graph').forEach(e => e.innerText = d.graph);
+            document.querySelectorAll('.t-profile').forEach(e => e.innerText = d.profile);
+            document.querySelectorAll('.t-date').forEach(e => e.innerText = d.date);
+            document.querySelectorAll('.t-hours').forEach(e => e.innerText = d.hours);
+            document.querySelectorAll('.t-ot').forEach(e => e.innerText = d.ot);
+            document.querySelectorAll('.t-bonus').forEach(e => e.innerText = d.bonus);
+            document.querySelectorAll('.t-extra').forEach(e => e.innerText = d.extra);
+            document.querySelectorAll('.t-cat').forEach(e => e.innerText = d.cat);
+            document.querySelectorAll('.t-amount').forEach(e => e.innerText = d.amount);
+            document.querySelectorAll('.t-save').forEach(e => e.innerText = d.save);
+            document.querySelectorAll('.t-clear').forEach(e => e.innerText = d.clear);
+            document.querySelectorAll('.t-totalBal').forEach(e => e.innerText = d.totalBal);
+            document.querySelectorAll('.t-work').forEach(e => e.innerText = d.work);
+            document.querySelectorAll('.t-day').forEach(e => e.innerText = d.day);
+            document.querySelectorAll('.t-breakdown').forEach(e => e.innerText = d.breakdown);
+            document.querySelectorAll('.t-pname').forEach(e => e.innerText = d.pname);
+            document.querySelectorAll('.t-pcode').forEach(e => e.innerText = d.pcode);
+            document.querySelectorAll('.t-pwage').forEach(e => e.innerText = d.pwage);
+            document.querySelectorAll('.t-pot').forEach(e => e.innerText = d.pot);
+            document.getElementById('sTitle').innerText = d.s_t;
+            document.getElementById('sMsg').innerText = d.s_m;
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        window.onload = () => {
+            document.getElementById('iDate').valueAsDate = new Date();
+            document.getElementById('eDate').valueAsDate = new Date();
+            document.getElementById('pName').value = profile.name;
+            document.getElementById('pCode').value = profile.code;
+            document.getElementById('pWage').value = profile.wage;
+            document.getElementById('pOt').value = profile.ot;
+            document.getElementById('pLang').value = profile.lang;
+            updateHeader(); setLang(profile.lang);
+        };
+    </script>
+</body>
+</html>
