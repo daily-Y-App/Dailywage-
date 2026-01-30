@@ -10,40 +10,39 @@
         /* CSS ဒီဇိုင်းများ (မူလအတိုင်း အပြည့်အစုံ) */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; padding-bottom: 20px; }
-        
         .app-header { background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); color: white; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .profile-photo { width: 55px; height: 55px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 28px; }
-        
+        .profile-photo { width: 55px; height: 55px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; }
         .tabs { display: flex; background: white; position: sticky; top: 0; z-index: 1000; overflow-x: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .tab { flex: 1; min-width: 80px; padding: 12px 5px; text-align: center; cursor: pointer; color: #777; font-weight: bold; font-size: 11px; border-bottom: 3px solid transparent; transition: 0.3s; }
         .tab.active { color: #b21f1f; border-bottom-color: #b21f1f; background: #fff5f5; }
         .tab-icon { display: block; font-size: 20px; margin-bottom: 3px; }
-        
         .content { padding: 15px; }
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #eee; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #444; }
         input, select { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 15px; outline: none; }
-        
         .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 15px rgba(178, 31, 31, 0.3); }
+
+        /* အမြန်စနစ်အတွက် Counter နှင့် Avatar Style အသစ် */
+        .counter-group { display: flex; align-items: center; gap: 8px; }
+        .c-btn { width: 45px; height: 45px; border-radius: 10px; border: none; background: #eee; font-size: 20px; font-weight: bold; cursor: pointer; }
+        .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+        .av-item { font-size: 24px; padding: 8px; border: 1px solid #ddd; border-radius: 10px; text-align: center; cursor: pointer; }
+
+        /* မူလ Style အဆက် */
         .balance-hero { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 30px 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; }
-        
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center; }
         .modal-content { background:white; width:90%; border-radius:20px; padding:25px; text-align:center; }
-        
-        .btn-link { display: block; width: 100%; padding: 14px; text-align: center; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 10px; border:none; cursor:pointer;}
-        .btn-yapp { background: #fdbb2d; color: #1a2a6c; }
         .delete-btn { color: #f44336; border: none; background: none; font-size: 18px; cursor: pointer; padding: 5px; }
         .breakdown-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
     </style>
 </head>
 <body> 
     <div class="app-header">
-        <div class="profile-photo">👷</div>
+        <div class="profile-photo" id="headAv" onclick="showPage('profile')">👷</div>
         <div>
             <div id="headName" style="font-weight: bold; font-size: 18px;">User Name</div>
             <div id="headCode" style="font-size: 12px; opacity: 0.9;">CODE: EMP001</div>
@@ -64,10 +63,38 @@
         <div id="income" class="page active">
             <div class="card">
                 <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="iDate"></div>
-                <div class="form-group"><label>⏰ <span class="t-hours">အလုပ်ချိန် (နာရီ)</span></label><input type="number" id="iHours" value="8"></div>
-                <div class="form-group"><label>⏱️ <span class="t-ot">OT (နာရီ)</span></label><input type="number" id="iOt" value="0"></div>
-                <div class="form-group"><label>📅 <span class="t-bonus">ရက်မှန်ကြေး</span></label><input type="number" id="iBonus" value="0"></div>
-                <div class="form-group"><label>💵 <span class="t-extra">အပိုဝင်ငွေ</span></label><input type="number" id="iExtra" value="0"></div>
+                <div class="form-group">
+                    <label>⏰ <span class="t-hours">အလုပ်ချိန် (နာရီ)</span></label>
+                    <div class="counter-group">
+                        <button class="c-btn" onclick="step('iHours', -1)">-</button>
+                        <input type="number" id="iHours" value="8">
+                        <button class="c-btn" onclick="step('iHours', 1)">+</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>⏱️ <span class="t-ot">OT (နာရီ)</span></label>
+                    <div class="counter-group">
+                        <button class="c-btn" onclick="step('iOt', -0.5)">-</button>
+                        <input type="number" id="iOt" value="0" step="0.5">
+                        <button class="c-btn" onclick="step('iOt', 0.5)">+</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📅 <span class="t-bonus">ရက်မှန်ကြေး</span></label>
+                    <div class="counter-group">
+                        <button class="c-btn" onclick="step('iBonus', -50)">-</button>
+                        <input type="number" id="iBonus" value="0">
+                        <button class="c-btn" onclick="step('iBonus', 50)">+</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>💵 <span class="t-extra">အပိုဝင်ငွေ</span></label>
+                    <div class="counter-group">
+                        <button class="c-btn" onclick="step('iExtra', -50)">-</button>
+                        <input type="number" id="iExtra" value="0">
+                        <button class="c-btn" onclick="step('iExtra', 50)">+</button>
+                    </div>
+                </div>
                 <button class="btn" onclick="saveData('income')">💾 <span class="t-save">သိမ်းမည်</span></button>
             </div>
         </div>
@@ -106,7 +133,21 @@
             <div id="breakdownList" class="card"></div>
         </div>
         <div id="graph" class="page"><div class="card" style="min-height: 300px;"><canvas id="myChart"></canvas></div></div>
+
         <div id="profile" class="page">
+            <div class="card">
+                <label>ကိုယ်စားပြုအရုပ် ရွေးချယ်ပါ</label>
+                <div class="avatar-grid">
+                    <div class="av-item" onclick="setAv('👷')">👷</div>
+                    <div class="av-item" onclick="setAv('👨‍🔧')">👨‍🔧</div>
+                    <div class="av-item" onclick="setAv('👩‍🍳')">👩‍🍳</div>
+                    <div class="av-item" onclick="setAv('👨‍💻')">👨‍💻</div>
+                    <div class="av-item" onclick="setAv('🥷')">🥷</div>
+                    <div class="av-item" onclick="setAv('🤵')">🤵</div>
+                    <div class="av-item" onclick="setAv('🧚')">🧚</div>
+                    <div class="av-item" onclick="setAv('🐼')">🐼</div>
+                </div>
+            </div>
             <div class="card">
                 <div class="form-group"><label class="t-pname">အမည်</label><input type="text" id="pName"></div>
                 <div class="form-group"><label class="t-pcode">ကုတ်နံပါတ်</label><input type="text" id="pCode"></div>
@@ -147,9 +188,22 @@
 
     <script>
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
-        let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my' };
+        let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
         let myChart = null;
         let pendingDelId = null;
+        let lastIn = JSON.parse(localStorage.getItem('last_in')) || { h: 8, o: 0, b: 0, e: 0 };
+
+        function step(id, val) {
+            let el = document.getElementById(id);
+            let n = parseFloat(el.value) + val;
+            el.value = n < 0 ? 0 : n;
+        }
+
+        function setAv(emoji) {
+            profile.av = emoji;
+            document.getElementById('headAv').innerText = emoji;
+            localStorage.setItem('f_prof', JSON.stringify(profile));
+        }
 
         const langMap = {
             my: { income:"ဝင်ငွေ", expense:"ထွက်ငွေ", history:"မှတ်တမ်း", weekly:"15ရက်", balance:"လက်ကျန်", graph:"ဂရပ်", profile:"Profile", date:"ရက်စွဲ", hours:"အလုပ်ချိန် (နာရီ)", ot:"OT (နာရီ)", bonus:"ရက်မှန်ကြေး", extra:"အပိုဝင်ငွေ", cat:"အမျိုးအစား", amount:"ပမာဏ", save:"သိမ်းမည်", clear:"စာရင်းအားလုံးဖျက်မည်", totalBal:"လက်ကျန်ငွေ စုစုပေါင်း", work:"အလုပ်ဆင်းရက်", day:"ရက်", breakdown:"အမျိုးအစားအလိုက် ခွဲပြချက်", pname:"အမည်", pcode:"ကုတ်နံပါတ်", pwage:"တနေ့လုပ်အားခ", pot:"OT နာရီခ", s_t:"သိမ်းဆည်းပြီးပါပြီ", s_m:"အောင်မြင်စွာ သိမ်းဆည်းလိုက်ပါပြီ" },
@@ -157,7 +211,6 @@
             th: { income:"รายได้", expense:"รายจ่าย", history:"ประวัติ", weekly:"15 วัน", balance:"ยอดรวม", graph:"กราฟ", profile:"โปรไฟล์", date:"วันที่", hours:"ชั่วโมงงาน", ot:"โอที (ชม.)", bonus:"เบี้ยขยัน", extra:"รายได้พิเศษ", cat:"หมวดหมู่", amount:"จำนวนเงิน", save:"บันทึก", clear:"ล้างข้อมูลทั้งหมด", totalBal:"ยอดเงินคงเหลือ", work:"วันทำงาน", day:"วัน", breakdown:"รายละเอียดแยกประเภท", pname:"ชื่อ", pcode:"รหัส", pwage:"ค่าแรงรายวัน", pot:"ค่าโอที", s_t:"บันทึกแล้ว", s_m:"บันทึกข้อมูลเรียบร้อยแล้ว" }
         };
 
-        // **အဓိကပြင်ဆင်လိုက်သည့် saveData function (စလစ်အတွက် အချက်အလက်ချိတ်ဆက်ရန်)**
         function saveData(type) {
             const date = document.getElementById(type==='income'?'iDate':'eDate').value;
             if(!date) return alert("Select Date");
@@ -167,11 +220,10 @@
                 const ot = parseFloat(document.getElementById('iOt').value) || 0;
                 const bonus = parseFloat(document.getElementById('iBonus').value) || 0;
                 const extra = parseFloat(document.getElementById('iExtra').value) || 0;
-                
                 amt = (hours/8 * profile.wage) + (ot * profile.ot) + bonus + extra;
                 cat = "ဝင်ငွေ";
-                // ဤနေရာတွင် details ကို ထည့်သွင်းပေးမှသာ စလစ် (Calendar) တွင် အချက်အလက်များ ပေါ်မည်ဖြစ်သည်
                 details = { h: hours, o: ot, b: bonus, e: extra };
+                localStorage.setItem('last_in', JSON.stringify(details));
             } else {
                 amt = parseFloat(document.getElementById('eAmount').value) || 0;
                 cat = (document.getElementById('eCat').value === 'custom') ? document.getElementById('customCat').value : document.getElementById('eCat').value;
@@ -181,7 +233,7 @@
             document.getElementById('successModal').style.display = 'flex';
         }
 
-        // ကျန်သည့် Logic များအားလုံး မူလအတိုင်း ထားရှိပါသည်
+        // ကျန်သည့် Logic များ (မူလအတိုင်း အပြည့်အစုံ)
         function showPage(id, btn) {
             document.querySelectorAll('.page, .tab').forEach(el => el.classList.remove('active'));
             document.getElementById(id).classList.add('active');
@@ -237,12 +289,12 @@
         }
 
         function saveProfile() {
-            profile = { name: document.getElementById('pName').value, code: document.getElementById('pCode').value, wage: document.getElementById('pWage').value, ot: document.getElementById('pOt').value, lang: document.getElementById('pLang').value };
+            profile = { ...profile, name: document.getElementById('pName').value, code: document.getElementById('pCode').value, wage: document.getElementById('pWage').value, ot: document.getElementById('pOt').value, lang: document.getElementById('pLang').value };
             localStorage.setItem('f_prof', JSON.stringify(profile));
             updateHeader(); setLang(profile.lang); alert("Saved!");
         }
 
-        function updateHeader() { document.getElementById('headName').innerText = profile.name; document.getElementById('headCode').innerText = "CODE: " + profile.code; }
+        function updateHeader() { document.getElementById('headName').innerText = profile.name; document.getElementById('headCode').innerText = "CODE: " + profile.code; document.getElementById('headAv').innerText = profile.av || '👷'; }
 
         function setLang(l) {
             const d = langMap[l];
@@ -284,8 +336,14 @@
             document.getElementById('pWage').value = profile.wage;
             document.getElementById('pOt').value = profile.ot;
             document.getElementById('pLang').value = profile.lang;
+            
+            document.getElementById('iHours').value = lastIn.h;
+            document.getElementById('iOt').value = lastIn.o;
+            document.getElementById('iBonus').value = lastIn.b;
+            document.getElementById('iExtra').value = lastIn.e;
+
             updateHeader(); setLang(profile.lang);
         };
     </script>
 </body>
-</html>
+    </html>
