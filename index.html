@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>📊 Daily Wage</title>
+    <title>📊 Advanced Income & Expense Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -40,14 +40,14 @@
         <div class="user-info">
             <div class="profile-photo" id="headAv" onclick="showPage('profile')">👷</div>
             <div>
-                <div id="headName" style="font-weight: bold; font-size: 16px;">DailyWage</div>
-                <div id="headCode" style="font-size: 11px; opacity: 0.9;">CODE: PZ007</div>
+                <div id="headName" style="font-weight: bold; font-size: 16px;">User</div>
+                <div id="headCode" style="font-size: 11px; opacity: 0.9;">CODE: EMP001</div>
             </div>
         </div>
         <select class="lang-top" id="topLang" onchange="setLang(this.value)">
-            <option value="my">🇲🇲 Myanmar</option>
-            <option value="en">🇺🇸 English</option>
-            <option value="th">🇹🇭 Tailand</option>
+            <option value="my">🇲🇲 MY</option>
+            <option value="en">🇺🇸 EN</option>
+            <option value="th">🇹🇭 TH</option>
         </select>
     </div>
 
@@ -65,7 +65,7 @@
         <div id="income" class="page active">
             <div class="card">
                 <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="iDate"></div>
-                <div class="form-group"><label>⏰ <span class="t-hours">အလုပ်ချိန် (နာရီ)</span> <small>(နားရက်လျှင် 0 ထားပါဝင်ငွေရှိလျှင်)</small></label><div class="counter-group"><button class="c-btn" onclick="step('iHours', -1)">-</button><input type="number" id="iHours" value="8"><button class="c-btn" onclick="step('iHours', 1)">+</button></div></div>
+                <div class="form-group"><label>⏰ <span class="t-hours">အလုပ်ချိန် (နာရီ)</span> <small>(နားရက်လျှင် 0 ထားပါ)</small></label><div class="counter-group"><button class="c-btn" onclick="step('iHours', -1)">-</button><input type="number" id="iHours" value="8"><button class="c-btn" onclick="step('iHours', 1)">+</button></div></div>
                 <div class="form-group"><label>⏱️ <span class="t-ot">OT (နာရီ)</span></label><div class="counter-group"><button class="c-btn" onclick="step('iOt', -0.5)">-</button><input type="number" id="iOt" value="0" step="0.5"><button class="c-btn" onclick="step('iOt', 0.5)">+</button></div></div>
                 <div class="form-group"><label>📅 <span class="t-bonus">ရက်မှန်ကြေး</span></label><div class="counter-group"><button class="c-btn" onclick="step('iBonus', -50)">-</button><input type="number" id="iBonus" value="0"><button class="c-btn" onclick="step('iBonus', 50)">+</button></div></div>
                 <div class="form-group"><label>💵 <span class="t-extra">အပိုဝင်ငွေ</span></label><div class="counter-group"><button class="c-btn" onclick="step('iExtra', -50)">-</button><input type="number" id="iExtra" value="0"><button class="c-btn" onclick="step('iExtra', 50)">+</button></div></div>
@@ -118,7 +118,7 @@
     <script>
         const pages = ['income', 'expense', 'history', 'weekly', 'balance', 'graph', 'profile'];
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
-        let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'DailyWage', code:'PZ001', wage:372, ot:69, lang:'my', av: '👷' };
+        let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
         let startX = 0, myChart = null;
 
         // --- Swipe System ---
