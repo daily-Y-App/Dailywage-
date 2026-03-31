@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>📊 Smart Finance Tracker</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary: #1a2a6c;
+            --secondary: #b21f1f;
+            --accent: #fdbb2d;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: var(--bg); 
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 90px;
+        }
+
+        /* --- Header --- */
+        .app-header { 
+            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+            color: white; 
+            padding: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            border-bottom-left-radius: 25px;
+            border-bottom-right-radius: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .profile-photo { 
+            width: 50px; height: 50px; 
+            border-radius: 15px; 
+            background: rgba(255,255,255,0.2); 
+            border: 2px solid rgba(255,255,255,0.4);
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 24px; cursor: pointer;
+        }
+
+        .lang-top { 
+            background: rgba(255,255,255,0.2); 
+            border: 1px solid rgba(255,255,255,0.3); 
+            color: white; border-radius: 10px; padding: 6px 8px; 
+            font-size: 13px; outline: none;
+        }
+        .lang-top option { color: #000; }
+
+        /* --- Bottom Nav --- */
+        .bottom-nav {
+            position: fixed; bottom: 0; width: 100%;
+            background: white; display: flex; justify-content: space-around;
+            padding: 12px 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+            z-index: 1000; border-top-left-radius: 20px; border-top-right-radius: 20px;
+        }
+
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px; cursor: pointer; color: var(--text-sub); transition: 0.3s; flex: 1;
+        }
+        .nav-item.active { color: var(--secondary); }
+        .nav-icon { font-size: 20px; }
+        .nav-text { font-size: 10px; font-weight: 600; }
+
+        /* --- Layout --- */
+        .content { padding: 20px; }
+        .page { display: none; animation: slideUp 0.4s ease-out; }
+        .page.active { display: block; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card { 
+            background: var(--card-bg); padding: 20px; border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.03); margin-bottom: 20px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .balance-hero { 
+            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+            color: white; padding: 30px 20px; border-radius: 25px; 
+            text-align: center; margin-bottom: 25px;
+        }
+
+        /* --- Forms --- */
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-sub); }
+        input, select { 
+            width: 100%; padding: 14px; border: 2px solid #edf2f7; 
+            border-radius: 12px; font-size: 16px; outline: none;
+        }
+        .counter-group { display: flex; align-items: center; gap: 10px; }
+        .c-btn { 
+            width: 45px; height: 45px; border-radius: 10px; border: none; 
+            background: #f1f5f9; font-size: 20px; cursor: pointer;
+        }
+        .btn-save { 
+            width: 100%; padding: 16px; background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+            color: white; border: none; border-radius: 15px; font-weight: 700; cursor: pointer;
+        }
+
+        /* Modals */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; backdrop-filter: blur(5px); }
+        .modal-content { background:white; width:85%; border-radius:25px; padding:30px; text-align:center; }
+
+        .text-plus { color: #10b981; font-weight: bold; }
+        .text-minus { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <div class="user-info">
+            <div class="profile-photo" id="headAv" onclick="showPage('profile')">👷</div>
+            <div>
+                <div id="headName" style="font-weight: 700; font-size: 18px;">User</div>
+                <div id="headCode" style="font-size: 12px; opacity: 0.8;">CODE: EMP001</div>
+            </div>
+        </div>
+        <select class="lang-top" id="topLang" onchange="setLang(this.value)">
+            <option value="my">🇲🇲 MY</option>
+            <option value="en">🇺🇸 EN</option>
+            <option value="th">🇹🇭 TH</option>
+        </select>
+    </div>
+
+    <div class="content">
+        <div id="income" class="page active">
+            <div class="card">
+                <h3 style="margin-bottom:15px;" class="t-income">ဝင်ငွေထည့်သွင်းရန်</h3>
+                <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="iDate"></div>
+                <div class="form-group">
+                    <label>⏰ <span class="t-hours">အလုပ်ချိန် (နာရီ)</span></label>
+                    <div class="counter-group">
+                        <button class="c-btn" onclick="step('iHours', -1)">-</button>
+                        <input type="number" id="iHours" value="8">
+                        <button class="c-btn" onclick="step('iHours', 1)">+</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>⏱️ <span class="t-ot">OT (နာရီ)</span></label>
+                    <div class="counter-group">
+                        <button class="c-btn" onclick="step('iOt', -0.5)">-</button>
+                        <input type="number" id="iOt" value="0" step="0.5">
+                        <button class="c-btn" onclick="step('iOt', 0.5)">+</button>
+                    </div>
+                </div>
+                <div class="form-group"><label>💵 <span class="t-extra">အပိုဝင်ငွေ</span></label><input type="number" id="iExtra" value="0"></div>
+                <button class="btn-save" onclick="saveData('income')">💾 <span class="t-save">သိမ်းဆည်းမည်</span></button>
+            </div>
+        </div>
+
+        <div id="expense" class="page">
+            <div class="card">
+                <h3 style="margin-bottom:15px;" class="t-expense">ထွက်ငွေထည့်သွင်းရန်</h3>
+                <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="eDate"></div>
+                <div class="form-group">
+                    <label>📂 <span class="t-cat">အမျိုးအစား</span></label>
+                    <select id="eCat" onchange="checkCustom(this.value)">
+                        <option value="🏠 အိမ်လခ">🏠 အိမ်လခ</option>
+                        <option value="🚗 ခရီးစရိတ်">🚗 ခရီးစရိတ်</option>
+                        <option value="🍜 မုန့်ဖိုး">🍜 မုန့်ဖိုး</option>
+                        <option value="custom">➕ အခြား</option>
+                    </select>
+                    <input type="text" id="customCat" placeholder="အမျိုးအစား အမည်..." style="display:none; margin-top:12px;">
+                </div>
+                <div class="form-group"><label>💵 <span class="t-amount">ပမာဏ (฿)</span></label><input type="number" id="eAmount"></div>
+                <button class="btn-save" onclick="saveData('expense')">💾 <span class="t-save">သိမ်းဆည်းမည်</span></button>
+            </div>
+        </div>
+
+        <div id="history" class="page">
+            <div id="historyList"></div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button onclick="askClearAll()" style="background:none; border:none; color:var(--text-sub); cursor:pointer;">🗑️ <span class="t-clear">စာရင်းအားလုံးဖျက်ရန်</span></button>
+            </div>
+        </div>
+
+        <div id="balance" class="page">
+            <div class="balance-hero">
+                <div class="t-totalBal">စုစုပေါင်းလက်ကျန်ငွေ</div>
+                <h1 id="totalBal" style="font-size: 36px; margin: 10px 0;">0฿</h1>
+                <div style="font-size: 13px; opacity: 0.9;">
+                    <span class="t-work">ရက်ပေါင်း</span>: <span id="workCount">0</span> | OT: <span id="otTotal">0</span> hr
+                </div>
+            </div>
+            <div id="breakdownList" class="card"></div>
+        </div>
+
+        <div id="graph" class="page">
+            <div class="card">
+                <h3 style="text-align:center; margin-bottom:20px;" class="t-graph">ဂရပ်မှတ်တမ်း</h3>
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+
+        <div id="profile" class="page">
+            <div class="card">
+                <h3 style="margin-bottom:15px;" class="t-profile">ကိုယ်ရေးအချက်အလက်</h3>
+                <div class="form-group"><label>အမည်</label><input type="text" id="pName"></div>
+                <div class="form-group"><label>ကုတ်နံပါတ်</label><input type="text" id="pCode"></div>
+                <div class="form-group"><label>တနေ့လုပ်အားခ</label><input type="number" id="pWage"></div>
+                <div class="form-group"><label>OT နာရီခ</label><input type="number" id="pOt"></div>
+                <button class="btn-save" onclick="saveProfile()">💾 Update Profile</button>
+                <button class="btn-save" style="margin-top:10px; background:#0f172a;" onclick="window.location.href='https://daily-y-app.github.io/Battle-wage/'">⚔️ GO TO BATTLE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="showPage('income')"><span class="nav-icon">💰</span><span class="nav-text t-income">ဝင်ငွေ</span></div>
+        <div class="nav-item" onclick="showPage('expense')"><span class="nav-icon">💸</span><span class="nav-text t-expense">ထွက်ငွေ</span></div>
+        <div class="nav-item" onclick="showPage('history')"><span class="nav-icon">📜</span><span class="nav-text t-history">မှတ်တမ်း</span></div>
+        <div class="nav-item" onclick="showPage('balance')"><span class="nav-icon">🧮</span><span class="nav-text t-balance">လက်ကျန်</span></div>
+        <div class="nav-item" onclick="showPage('graph')"><span class="nav-icon">📊</span><span class="nav-text t-graph">ဂရပ်</span></div>
+    </div>
+
+    <div id="successModal" class="modal"><div class="modal-content"><h2>✅ Success!</h2><button class="btn-save" style="margin-top:20px;" onclick="closeModal('successModal')">OK</button></div></div>
+    <div id="deleteModal" class="modal"><div class="modal-content"><h2>🚨 Delete?</h2><button class="btn-save" onclick="confirmDelete()">Confirm</button><button class="btn-save" style="background:#888; margin-top:10px;" onclick="closeModal('deleteModal')">Cancel</button></div></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7T7WZg0fLGTw6ShqDHjOva-btNF6O1AM",
+            authDomain: "seafood-oder.firebaseapp.com",
+            databaseURL: "https://seafood-oder-default-rtdb.firebaseio.com",
+            projectId: "seafood-oder",
+            storageBucket: "seafood-oder.firebasestorage.app",
+            messagingSenderId: "428949391732",
+            appId: "1:428949391732:web:6aa0a31a4f4ba33765c421",
+            measurementId: "G-GY9TRMQ359"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let records = JSON.parse(localStorage.getItem('f_recs')) || [];
+        let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
+        let myChart = null;
+
+        const langMap = {
+            my: { income:"ဝင်ငွေ", expense:"ထွက်ငွေ", history:"မှတ်တမ်း", balance:"လက်ကျန်", graph:"ဂရပ်", profile:"ကိုယ်ရေး", date:"ရက်စွဲ", save:"သိမ်းမည်", totalBal:"စုစုပေါင်းလက်ကျန်ငွေ", work:"ရက်ပေါင်း", hours:"အလုပ်ချိန်", ot:"OT", clear:"စာရင်းဖျက်ရန်", amount:"ပမာဏ", cat:"အမျိုးအစား", extra:"အပိုဝင်ငွေ" },
+            en: { income:"Income", expense:"Expense", history:"History", balance:"Balance", graph:"Graph", profile:"Profile", date:"Date", save:"Save", totalBal:"Total Balance", work:"Days", hours:"Hours", ot:"OT", clear:"Clear All", amount:"Amount", cat:"Category", extra:"Extra" },
+            th: { income:"รายได้", expense:"รายจ่าย", history:"ประวัติ", balance:"ยอดรวม", graph:"กราฟ", profile:"โปรไฟล์", date:"วันที่", save:"บันทึก", totalBal:"ยอดคงเหลือ", work:"จำนวนวัน", hours:"ชั่วโมง", ot:"โอที", clear:"ล้างข้อมูล", amount:"จำนวนเงิน", cat:"ประเภท", extra:"รายได้เสริม" }
+        };
+
+        function setLang(l) {
+            profile.lang = l;
+            localStorage.setItem('f_prof', JSON.stringify(profile));
+            const d = langMap[l];
+            // Find all elements with class starting with 't-'
+            document.querySelectorAll('[class*="t-"]').forEach(el => {
+                const classes = Array.from(el.classList);
+                const targetClass = classes.find(c => c.startsWith('t-'));
+                if (targetClass) {
+                    const key = targetClass.replace('t-', '');
+                    if (d[key]) el.innerText = d[key];
+                }
+            });
+        }
+
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            // Activate correct nav item
+            const idx = ['income', 'expense', 'history', 'balance', 'graph'].indexOf(id);
+            if(idx !== -1) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+
+            if(id === 'balance') updateBalance();
+            if(id === 'history') renderList();
+            if(id === 'graph') renderGraph();
+        }
+
+        function syncToFirebase() {
+            db.ref('users/' + profile.code).set({ profile, records, lastUpdate: new Date().toISOString() });
+        }
+
+        function saveData(type) {
+            const date = document.getElementById(type==='income'?'iDate':'eDate').value;
+            if(!date) return alert("Please select date");
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            let amt = 0, cat = "", det = null;
+            if(type === 'income') {
+                const h = parseFloat(document.getElementById('iHours').value)||0;
+                const o = parseFloat(document.getElementById('iOt').value)||0;
+                const e = parseFloat(document.getElementById('iExtra').value)||0;
+                amt = (h/8 * profile.wage) + (o * profile.ot) + e;
+                cat = langMap[profile.lang].income;
+                det = { h, o, e };
+            } else {
+                amt = parseFloat(document.getElementById('eAmount').value) || 0;
+                cat = document.getElementById('eCat').value === 'custom' ? document.getElementById('customCat').value : document.getElementById('eCat').value;
+            }
+
+            records.push({ id:Date.now(), type, date, time, amt, category:cat, details:det });
+            localStorage.setItem('f_recs', JSON.stringify(records));
+            syncToFirebase();
+            document.getElementById('successModal').style.display = 'flex';
+        }
+
+        function updateBalance() {
+            const inc = records.filter(r => r.type === 'income');
+            const expTotal = records.filter(r => r.type === 'expense').reduce((a, b) => a + b.amt, 0);
+            const wageTotal = inc.reduce((a, b) => a + (b.details.h/8 * profile.wage), 0);
+            const otTotalHrs = inc.reduce((a, b) => a + b.details.o, 0);
+            const otCash = inc.reduce((a, b) => a + (b.details.o * profile.ot), 0);
+            const extraTotal = inc.reduce((a, b) => a + b.details.e, 0);
+            const total = (wageTotal + otCash + extraTotal) - expTotal;
+
+            document.getElementById('totalBal').innerText = total.toFixed(0) + '฿';
+            document.getElementById('workCount').innerText = inc.length;
+            document.getElementById('otTotal').innerText = otTotalHrs;
+
+            document.getElementById('breakdownList').innerHTML = `
+                <div class="breakdown-item"><span>💰 Basic Wage</span><span class="text-plus">+${wageTotal.toFixed(0)}฿</span></div>
+                <div class="breakdown-item"><span>⏱️ OT Pay</span><span class="text-plus">+${otCash.toFixed(0)}฿</span></div>
+                <div class="breakdown-item"><span>💵 Extra</span><span class="text-plus">+${extraTotal.toFixed(0)}฿</span></div>
+                <div class="breakdown-item"><span>📉 Expenses</span><span class="text-minus">-${expTotal.toFixed(0)}฿</span></div>
+            `;
+        }
+
+        function renderList() {
+            const div = document.getElementById('historyList'); div.innerHTML = "";
+            [...records].reverse().forEach(r => {
+                const isInc = r.type==='income';
+                div.innerHTML += `
+                    <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-left:5px solid ${isInc?'#10b981':'#ef4444'}">
+                        <div><small style="color:#94a3b8">${r.date}</small><br><b>${r.category}</b></div>
+                        <div style="text-align:right">
+                            <div class="${isInc?'text-plus':'text-minus'}">${isInc?'+':'-'}${r.amt.toFixed(0)}฿</div>
+                            <span onclick="askDelete(${r.id})" style="cursor:pointer">🗑️</span>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function renderGraph() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const inc = records.filter(r=>r.type==='income').reduce((a,b)=>a+b.amt, 0);
+            const exp = records.filter(r=>r.type==='expense').reduce((a,b)=>a+b.amt, 0);
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type:'doughnut',
+                data:{ labels:['Income','Expense'], datasets:[{ data:[inc, exp], backgroundColor:['#1a2a6c','#ef4444'] }] },
+                options:{ plugins:{ legend:{ position:'bottom' } } }
+            });
+        }
+
+        function step(id, v) { let el = document.getElementById(id); el.value = Math.max(0, parseFloat(el.value) + v); }
+        function checkCustom(v) { document.getElementById('customCat').style.display = v==='custom'?'block':'none'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function saveProfile() {
+            profile.name = document.getElementById('pName').value;
+            profile.code = document.getElementById('pCode').value;
+            profile.wage = parseFloat(document.getElementById('pWage').value);
+            profile.ot = parseFloat(document.getElementById('pOt').value);
+            localStorage.setItem('f_prof', JSON.stringify(profile));
+            updateHeader(); syncToFirebase(); alert("Saved!");
+        }
+
+        function updateHeader() {
+            document.getElementById('headName').innerText = profile.name;
+            document.getElementById('headCode').innerText = "CODE: " + profile.code;
+        }
+
+        let pendingId = null;
+        function askDelete(id) { pendingId = id; document.getElementById('deleteModal').style.display = 'flex'; }
+        function askClearAll() { pendingId = 'ALL'; document.getElementById('deleteModal').style.display = 'flex'; }
+        function confirmDelete() {
+            if(pendingId === 'ALL') records = []; else records = records.filter(r => r.id !== pendingId);
+            localStorage.setItem('f_recs', JSON.stringify(records));
+            syncToFirebase(); closeModal('deleteModal'); renderList();
+        }
+
+        window.onload = () => {
+            document.getElementById('iDate').valueAsDate = new Date();
+            document.getElementById('eDate').valueAsDate = new Date();
+            document.getElementById('pName').value = profile.name;
+            document.getElementById('pCode').value = profile.code;
+            document.getElementById('pWage').value = profile.wage;
+            document.getElementById('pOt').value = profile.ot;
+            document.getElementById('topLang').value = profile.lang;
+            updateHeader(); setLang(profile.lang);
+        };
+    </script>
+</body>
+</html>
