@@ -3,250 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>📊 Advanced Income & Expense Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>⚔️ Battle Pro Arena</title>
     
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; padding-bottom: 20px; overflow-x: hidden; }
-        .app-header { background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
-        .user-info { display: flex; align-items: center; gap: 12px; }
-        .profile-photo { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
-        .lang-top { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 8px; padding: 4px 8px; font-size: 12px; outline: none; }
-        .lang-top option { color: black; }
-        .tabs { display: flex; background: white; position: sticky; top: 0; z-index: 1000; overflow-x: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .tab { flex: 1; min-width: 75px; padding: 12px 5px; text-align: center; cursor: pointer; color: #777; font-weight: bold; font-size: 10px; border-bottom: 3px solid transparent; }
-        .tab.active { color: #b21f1f; border-bottom-color: #b21f1f; background: #fff5f5; }
-        .tab-icon { display: block; font-size: 18px; margin-bottom: 3px; }
-        .content { padding: 15px; }
-        .page { display: none; }
-        .page.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #eee; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #444; }
-        input, select { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 15px; outline: none; }
-        .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .counter-group { display: flex; align-items: center; gap: 8px; }
-        .c-btn { width: 45px; height: 45px; border-radius: 10px; border: none; background: #eee; font-size: 20px; font-weight: bold; cursor: pointer; }
-        .balance-hero { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 25px 15px; border-radius: 20px; text-align: center; margin-bottom: 15px; }
-        .breakdown-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; font-weight: 500; }
-        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center; }
-        .modal-content { background:white; width:90%; border-radius:20px; padding:25px; text-align:center; }
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script> <style>
+        :root { --primary: #1a2a6c; --secondary: #b21f1f; --accent: #fdbb2d; --bg: #f8fafc; --card: #ffffff; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: #1e293b; min-height: 100vh; padding-bottom: 90px; }
+
+        /* --- Header --- */
+        .header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 25px; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .header h1 { font-size: 26px; font-weight: 800; letter-spacing: 1px; margin-bottom: 5px; }
+
+        /* --- Content Area --- */
+        .content { padding: 20px; }
+        .card { background: var(--card); border-radius: 20px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); text-align: center; }
+
+        /* --- ID Display --- */
+        .id-label { font-size: 14px; color: #94a3b8; margin-bottom: 8px; }
+        .id-value { font-size: 24px; font-weight: 800; color: #1e293b; font-family: monospace; letter-spacing: 2px; }
+
+        /* --- QR Generation --- */
+        #qrcode { display: flex; justify-content: center; margin: 25px 0; }
+
+        /* --- Buttons --- */
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 15px; color: white; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 15px rgba(178, 31, 31, 0.2); margin-top: 15px; }
+        .btn-scanner { background: linear-gradient(135deg, var(--accent), #f97316); box-shadow: 0 8px 15px rgba(249, 115, 22, 0.2); }
+        .btn-input { background: linear-gradient(135deg, var(--primary), #2563eb); box-shadow: 0 8px 15px rgba(37, 99, 235, 0.2); }
+
+        /* --- Scanner UI --- */
+        #scanner-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        #video { width: 85%; max-width: 400px; height: auto; border-radius: 20px; border: 4px solid white; box-shadow: 0 0 30px rgba(255,255,255,0.3); }
+
+        /* --- Input UI --- */
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 10px; font-weight: 600; font-size: 14px; color: #64748b; }
+        .input-group input { width: 100%; padding: 16px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 16px; outline: none; transition: 0.3s; }
+
+        /* --- Chat Box --- */
+        .chat-container { border: 1px solid #edf2f7; border-radius: 15px; margin-top: 20px; overflow: hidden; }
+        .chat-header { background: #f1f5f9; padding: 10px; font-weight: bold; font-size: 14px; border-bottom: 1px solid #edf2f7; }
+        .chat-box { height: 200px; overflow-y: auto; padding: 15px; text-align: left; background: #fafafa; }
+        .msg { margin-bottom: 8px; padding: 8px 12px; border-radius: 10px; font-size: 14px; display: inline-block; max-width: 80%; }
+        .msg.me { background: #1a2a6c; color: white; align-self: flex-end; }
+        .msg.him { background: #e2e8f0; color: #1e293b; align-self: flex-start; }
     </style>
 </head>
-<body ontouchstart="handleTouchStart(event)" ontouchend="handleTouchEnd(event)">
-    <div class="app-header">
-        <div class="user-info">
-            <div class="profile-photo" id="headAv" onclick="showPage('profile')">👷</div>
-            <div>
-                <div id="headName" style="font-weight: bold; font-size: 16px;">User</div>
-                <div id="headCode" style="font-size: 11px; opacity: 0.9;">CODE: EMP001</div>
-            </div>
-        </div>
-        <select class="lang-top" id="topLang" onchange="setLang(this.value)">
-            <option value="my">🇲🇲 MY</option>
-            <option value="en">🇺🇸 EN</option>
-            <option value="th">🇹🇭 TH</option>
-        </select>
-    </div>
+<body>
 
-    <div class="tabs">
-        <div class="tab active" data-id="income" onclick="showPage('income', this)"><span class="tab-icon">💰</span><span class="t-income">ဝင်ငွေ</span></div>
-        <div class="tab" data-id="expense" onclick="showPage('expense', this)"><span class="tab-icon">💸</span><span class="t-expense">ထွက်ငွေ</span></div>
-        <div class="tab" data-id="history" onclick="showPage('history', this)"><span class="tab-icon">📜</span><span class="t-history">မှတ်တမ်း</span></div>
-        <div class="tab" data-id="weekly" onclick="showPage('weekly', this)"><span class="tab-icon">🗑️</span><span class="t-clear">အားလုံးဖျက်ရန်</span></div>
-        <div class="tab" data-id="balance" onclick="showPage('balance', this)"><span class="tab-icon">🧮</span><span class="t-balance">လက်ကျန်</span></div>
-        <div class="tab" data-id="graph" onclick="showPage('graph', this)"><span class="tab-icon">📊</span><span class="t-graph">ဂရပ်</span></div>
-        <div class="tab" data-id="profile" onclick="showPage('profile', this)"><span class="tab-icon">👤</span><span class="t-profile">Profile</span></div>
+    <div class="header">
+        <h1>⚔️ Battle Arena Pro</h1>
+        <p>daily-y-app.github.io</p>
     </div>
 
     <div class="content">
-        <div id="income" class="page active">
-            <div class="card">
-                <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="iDate"></div>
-                <div class="form-group"><label>⏰ <span class="t-hours">အလုပ်ချိန် (နာရီ)</span> <small>(နားရက်လျှင် 0 ထားပါ)</small></label><div class="counter-group"><button class="c-btn" onclick="step('iHours', -1)">-</button><input type="number" id="iHours" value="8"><button class="c-btn" onclick="step('iHours', 1)">+</button></div></div>
-                <div class="form-group"><label>⏱️ <span class="t-ot">OT (နာရီ)</span></label><div class="counter-group"><button class="c-btn" onclick="step('iOt', -0.5)">-</button><input type="number" id="iOt" value="0" step="0.5"><button class="c-btn" onclick="step('iOt', 0.5)">+</button></div></div>
-                <div class="form-group"><label>📅 <span class="t-bonus">ရက်မှန်ကြေး</span></label><div class="counter-group"><button class="c-btn" onclick="step('iBonus', -50)">-</button><input type="number" id="iBonus" value="0"><button class="c-btn" onclick="step('iBonus', 50)">+</button></div></div>
-                <div class="form-group"><label>💵 <span class="t-extra">အပိုဝင်ငွေ</span></label><div class="counter-group"><button class="c-btn" onclick="step('iExtra', -50)">-</button><input type="number" id="iExtra" value="0"><button class="c-btn" onclick="step('iExtra', 50)">+</button></div></div>
-                <button class="btn" onclick="saveData('income')">💾 <span class="t-save">သိမ်းမည်</span></button>
-            </div>
+        
+        <div class="card">
+            <h2 style="margin-bottom:15px;">သင့်ရဲ့ စိန်ခေါ်မှု Code</h2>
+            <p class="id-label"> dailywage apk အတွင်းကပဲလုပ်လို့ရမယ်</p>
+            <div class="id-value" id="myCode">...</div>
+            <div id="qrcode"></div>
+            <button class="btn btn-scanner" onclick="startScanner()">📷 QR Scan ဖတ်ပြီး စိန်ခေါ်မည်</button>
         </div>
 
-        <div id="expense" class="page">
-            <div class="card">
-                <div class="form-group"><label>📅 <span class="t-date">ရက်စွဲ</span></label><input type="date" id="eDate"></div>
-                <div class="form-group"><label>📂 <span class="t-cat">အမျိုးအစား</span></label>
-                    <select id="eCat" onchange="checkCustom(this.value)"><option value="🏠 အိမ်လခ">🏠 အိမ်လခ</option><option value="🚗 ခရီးစရိတ်">🚗 ခရီးစရိတ်</option><option value="🍜 မုန့်ဖိုး">🍜 မုန့်ဖိုး</option><option value="custom">➕ အခြား</option></select>
-                    <input type="text" id="customCat" placeholder="အမျိုးအစား အမည်..." style="display:none; margin-top:10px;">
-                </div>
-                <div class="form-group"><label>💵 <span class="t-amount">ပမာဏ</span></label><input type="number" id="eAmount"></div>
-                <button class="btn" onclick="saveData('expense')">💾 <span class="t-save">သိမ်းမည်</span></button>
+        <div class="card">
+            <h3>🔍 Code ဖြင့် ရှာဖွေမည်</h3>
+            <div class="input-group">
+                <input type="text" id="oppCode" placeholder="သူငယ်ချင်း၏ Code ကိုရိုက်ပါ">
             </div>
+            <button class="btn btn-input" onclick="startBattleManual()">⚔️ Battle စတင်မည်</button>
         </div>
 
-        <div id="history" class="page"><div id="historyList"></div></div>
-        <div id="weekly" class="page"><button class="btn" style="background: #333;" onclick="askClearAll()">🗑️ <span class="t-clear">စာရင်းအားလုံးဖျက်မည်</span></button></div>
-
-        <div id="balance" class="page">
-            <div class="balance-hero">
-                <div class="t-totalBal">လက်ကျန်ငွေ စုစုပေါင်း</div>
-                <h1 id="totalBal">0฿</h1>
-                <div style="font-size: 13px; margin-top:10px; opacity:0.9;">
-                    <span class="t-work">အလုပ်ဆင်းရက်</span>: <span id="workCount">0</span> ရက် | ⏱️ OT: <span id="otTotal">0</span> hr
+        <div class="card" id="chatCard" style="display:none;">
+            <h3>Battle Chat</h3>
+            <div class="chat-container">
+                <div class="chat-header">ကျောက်ကျောက် /EMP001</div>
+                <div class="chat-box" id="chatBox"></div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <input type="text" id="msgInput" placeholder="စာပို့ရန်..." style="flex:1; padding:10px; border-radius:10px; border:1px solid #ddd;">
+                    <button onclick="sendMsg()" style="padding:10px 20px; border-radius:10px; background:var(--primary); color:white; border:none;">ပို့</button>
                 </div>
             </div>
-            <div id="breakdownList" class="card"></div>
         </div>
 
-        <div id="graph" class="page"><div class="card"><canvas id="myChart"></canvas></div></div>
-
-        <div id="profile" class="page">
-            <div class="card">
-                <div class="form-group"><label>အမည်</label><input type="text" id="pName"></div>
-                <div class="form-group"><label>ကုတ်နံပါတ်</label><input type="text" id="pCode"></div>
-                <div class="form-group"><label>တနေ့လုပ်အားခ</label><input type="number" id="pWage"></div>
-                <div class="form-group"><label>OT နာရီခ</label><input type="number" id="pOt"></div>
-                <button class="btn" onclick="saveProfile()">💾 သိမ်းမည်</button>
-            </div>
-        </div>
     </div>
 
-    <div id="successModal" class="modal"><div class="modal-content"><h2>✅ Saved!</h2><button class="btn" onclick="closeModal('successModal')">DONE</button></div></div>
-    <div id="deleteModal" class="modal"><div class="modal-content"><h2>🚨 Delete?</h2><button class="btn" onclick="confirmDelete()">YES</button><button class="btn" style="background:#888" onclick="closeModal('deleteModal')">NO</button></div></div>
+    <div id="scanner-container">
+        <video id="video"></video>
+        <button class="btn" style="background:#ef4444; width:85%; margin-top:15px;" onclick="stopScanner()">❌ Scanner ပိတ်မည်</button>
+    </div>
 
     <script>
-        const pages = ['income', 'expense', 'history', 'weekly', 'balance', 'graph', 'profile'];
-        let records = JSON.parse(localStorage.getItem('f_recs')) || [];
-        let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
-        let startX = 0, myChart = null;
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7T7WZg0fLGTw6ShqDHjOva-btNF6O1AM",
+            authDomain: "seafood-oder.firebaseapp.com",
+            databaseURL: "https://seafood-oder-default-rtdb.firebaseio.com",
+            projectId: "seafood-oder",
+            storageBucket: "seafood-oder.firebasestorage.app",
+            messagingSenderId: "428949391732",
+            appId: "1:428949391732:web:6aa0a31a4f4ba33765c421"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        // --- Swipe System ---
-        function handleTouchStart(e) { startX = e.touches[0].clientX; }
-        function handleTouchEnd(e) {
-            let endX = e.changedTouches[0].clientX;
-            let idx = pages.indexOf(document.querySelector('.page.active').id);
-            if (startX - endX > 100 && idx < pages.length - 1) showPage(pages[idx + 1]);
-            if (endX - startX > 100 && idx > 0) showPage(pages[idx - 1]);
+        let myProfile = JSON.parse(localStorage.getItem('f_prof')) || { name: 'User', code: 'EMP001' };
+        let codeReader = null;
+        let selectedDeviceId = null;
+        let currentBattleId = null;
+
+        document.getElementById('myCode').innerText = myProfile.code;
+
+        // QR Generator
+        new QRCode(document.getElementById("qrcode"), { text: myProfile.code, width: 128, height: 128 });
+
+        // QR Scanner
+        async function startScanner() {
+            document.getElementById('scanner-container').style.display = 'flex';
+            codeReader = new ZXing.BrowserQRCodeReader();
+            
+            try {
+                const videoInputDevices = await codeReader.listVideoInputDevices();
+                selectedDeviceId = videoInputDevices[0].deviceId;
+                codeReader.decodeFromInputVideoDevice(selectedDeviceId, 'video').then(result => {
+                    stopScanner();
+                    connectToBattle(result.text);
+                }).catch(err => console.error(err));
+            } catch (err) { alert("Camera Error: Permission ကို စစ်ဆေးပါ"); stopScanner(); }
         }
 
-        function showPage(id, btn) {
-            document.querySelectorAll('.page, .tab').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            const targetTab = btn || document.querySelector(`[data-id="${id}"]`);
-            targetTab.classList.add('active');
-            if(id === 'balance') updateBalance();
-            if(id === 'history') renderList();
-            if(id === 'graph') renderGraph();
+        function stopScanner() {
+            if (codeReader) codeReader.reset();
+            document.getElementById('scanner-container').style.display = 'none';
         }
 
-        function saveData(type) {
-            const date = document.getElementById(type==='income'?'iDate':'eDate').value;
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            if(!date) return alert("ရက်စွဲရွေးပါ");
-            let amt = 0, cat = "", det = null;
-            if(type === 'income') {
-                const h = parseFloat(document.getElementById('iHours').value)||0, o = parseFloat(document.getElementById('iOt').value)||0;
-                const b = parseFloat(document.getElementById('iBonus').value)||0, e = parseFloat(document.getElementById('iExtra').value)||0;
-                amt = (h/8 * profile.wage) + (o * profile.ot) + b + e;
-                cat = "ဝင်ငွေ"; det = { h, o, b, e };
-            } else {
-                amt = parseFloat(document.getElementById('eAmount').value) || 0;
-                cat = document.getElementById('eCat').value === 'custom' ? document.getElementById('customCat').value : document.getElementById('eCat').value;
-            }
-            records.push({ id:Date.now(), type, date, time, amt, category:cat, details:det });
-            localStorage.setItem('f_recs', JSON.stringify(records));
-            document.getElementById('successModal').style.display = 'flex';
-        }
+        // Battle Connection
+        function startBattleManual() { connectToBattle(document.getElementById('oppCode').value); }
 
-        function updateBalance() {
-            const incRecs = records.filter(r => r.type === 'income');
-            const expRecs = records.filter(r => r.type === 'expense');
+        function connectToBattle(oppCode) {
+            if (!oppCode) return alert("Code ရိုက်ပါ");
+            currentBattleId = myProfile.code < oppCode ? `${myProfile.code}_${oppCode}` : `${oppCode}_${myProfile.code}`;
+            document.getElementById('chatCard').style.display = 'block';
+            
+            // တစ်ဖက်လူ Data နားထောင်ခြင်း
+            db.ref('users/' + oppCode + '/profile').on('value', snap => {
+                const opp = snap.val();
+                if(opp) document.querySelector('.chat-header').innerText = `${opp.name} /${opp.code}`;
+            });
 
-            const wageTotal = incRecs.reduce((a, b) => a + (b.details.h/8 * profile.wage), 0);
-            const otTotalHrs = incRecs.reduce((a, b) => a + b.details.o, 0);
-            const otCashTotal = incRecs.reduce((a, b) => a + (b.details.o * profile.ot), 0);
-            const bonusTotal = incRecs.reduce((a, b) => a + b.details.b, 0);
-            const extraTotal = incRecs.reduce((a, b) => a + b.details.e, 0);
-            const expTotal = expRecs.reduce((a, b) => a + b.amt, 0);
-
-            // အလုပ်ချိန် 0 ထက်ကြီးမှ ဆင်းရက်ထဲပေါင်းမည်
-            const workDays = incRecs.filter(r => r.details.h > 0).length;
-
-            document.getElementById('totalBal').innerText = (wageTotal + otCashTotal + bonusTotal + extraTotal - expTotal).toFixed(0) + '฿';
-            document.getElementById('workCount').innerText = workDays;
-            document.getElementById('otTotal').innerText = otTotalHrs;
-
-            const bDiv = document.getElementById('breakdownList');
-            bDiv.innerHTML = `
-                <div class="breakdown-item"><span>💰 အခြေခံလုပ်အားခ</span><span style="color:#4CAF50">+${wageTotal.toFixed(0)}฿</span></div>
-                <div class="breakdown-item"><span>⏱️ OT ကြေး (စုစုပေါင်း ${otTotalHrs} နာရီ)</span><span style="color:#4CAF50">+${otCashTotal.toFixed(0)}฿</span></div>
-                <div class="breakdown-item"><span>📅 ရက်မှန်ကြေး</span><span style="color:#4CAF50">+${bonusTotal.toFixed(0)}฿</span></div>
-                <div class="breakdown-item"><span>💵 အပိုဝင်ငွေ</span><span style="color:#4CAF50">+${extraTotal.toFixed(0)}฿</span></div>
-                <div class="breakdown-item" style="border-top:2px solid #eee; margin-top:5px;"><span><b>ထွက်ငွေများ:</b></span><span style="color:#F44336">-${expTotal.toFixed(0)}฿</span></div>
-            `;
-        }
-
-        function renderList() {
-            const div = document.getElementById('historyList'); div.innerHTML = "";
-            records.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(r => {
-                const isInc = r.type==='income';
-                div.innerHTML += `<div class="card" style="display:flex; justify-content:space-between; border-left:5px solid ${isInc?'#4CAF50':'#F44336'}">
-                    <div><small>${r.date} | ${r.time}</small><br><b>${r.category}</b></div>
-                    <div style="text-align:right"><b style="color:${isInc?'#4CAF50':'#F44336'}">${isInc?'+':'-'}${r.amt.toFixed(0)}฿</b><br><span onclick="askDelete(${r.id})">🗑️</span></div>
-                </div>`;
+            // Chat နားထောင်ခြင်း
+            db.ref('battles/' + currentBattleId + '/chats').on('child_added', snap => {
+                const m = snap.val();
+                const div = document.createElement('div');
+                div.className = `msg ${m.sender === myProfile.code ? 'me' : 'him'}`;
+                div.innerText = m.text;
+                document.getElementById('chatBox').appendChild(div);
+                document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
             });
         }
 
-        const langMap = {
-            my: { income:"ဝင်ငွေ", expense:"ထွက်ငွေ", history:"မှတ်တမ်း", clear:"ဖျက်ရန်", balance:"လက်ကျန်", graph:"ဂရပ်", profile:"ကိုယ်ရေး", date:"ရက်စွဲ", save:"သိမ်းမည်", totalBal:"လက်ကျန်ငွေ စုစုပေါင်း", work:"အလုပ်ဆင်းရက်", hours:"အလုပ်ချိန်", ot:"OT" },
-            en: { income:"Income", expense:"Expense", history:"History", clear:"Clear", balance:"Balance", graph:"Graph", profile:"Profile", date:"Date", save:"Save", totalBal:"Total Balance", work:"Work Days", hours:"Hours", ot:"OT" },
-            th: { income:"รายได้", expense:"รายจ่าย", history:"ประวัติ", clear:"ล้าง", balance:"ยอดรวม", graph:"กราฟ", profile:"โปรไฟล์", date:"วันที่", save:"บันทึก", totalBal:"ยอดเงินคงเหลือ", work:"วันทำงาน", hours:"ชั่วโมง", ot:"โอที" }
-        };
-
-        function setLang(l) {
-            profile.lang = l; localStorage.setItem('f_prof', JSON.stringify(profile));
-            const d = langMap[l];
-            document.querySelectorAll('[class^="t-"]').forEach(el => {
-                const key = el.className.split('t-')[1]; if(d[key]) el.innerText = d[key];
+        // Chat
+        function sendMsg() {
+            const text = document.getElementById('msgInput').value;
+            if(!text || !currentBattleId) return;
+            db.ref('battles/' + currentBattleId + '/chats').push({
+                sender: myProfile.code,
+                text: text,
+                time: Date.now()
             });
+            document.getElementById('msgInput').value = '';
         }
-
-        function renderGraph() {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            const inc = records.filter(r=>r.type==='income').reduce((a,b)=>a+b.amt, 0);
-            const exp = records.filter(r=>r.type==='expense').reduce((a,b)=>a+b.amt, 0);
-            if(myChart) myChart.destroy();
-            myChart = new Chart(ctx, { type:'doughnut', data:{ labels:['Income','Expense'], datasets:[{ data:[inc, exp], backgroundColor:['#4CAF50','#F44336'] }] } });
-        }
-
-        function step(id, v) { let el = document.getElementById(id); el.value = Math.max(0, parseFloat(el.value) + v); }
-        function checkCustom(v) { document.getElementById('customCat').style.display = v==='custom'?'block':'none'; }
-        function saveProfile() {
-            profile.name = document.getElementById('pName').value; profile.code = document.getElementById('pCode').value;
-            profile.wage = document.getElementById('pWage').value; profile.ot = document.getElementById('pOt').value;
-            localStorage.setItem('f_prof', JSON.stringify(profile)); updateHeader(); alert("Saved!");
-        }
-        function updateHeader() { document.getElementById('headName').innerText = profile.name; document.getElementById('headCode').innerText = "CODE: "+profile.code; document.getElementById('headAv').innerText = profile.av; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        let pendingId = null;
-        function askDelete(id) { pendingId = id; document.getElementById('deleteModal').style.display = 'flex'; }
-        function askClearAll() { pendingId = 'ALL'; document.getElementById('deleteModal').style.display = 'flex'; }
-        function confirmDelete() {
-            if(pendingId==='ALL') records = []; else records = records.filter(r => r.id !== pendingId);
-            localStorage.setItem('f_recs', JSON.stringify(records)); closeModal('deleteModal'); showPage('history');
-        }
-
-        window.onload = () => {
-            document.getElementById('iDate').valueAsDate = new Date();
-            document.getElementById('eDate').valueAsDate = new Date();
-            document.getElementById('pName').value = profile.name;
-            document.getElementById('pCode').value = profile.code;
-            document.getElementById('pWage').value = profile.wage;
-            document.getElementById('pOt').value = profile.ot;
-            document.getElementById('topLang').value = profile.lang;
-            updateHeader(); setLang(profile.lang);
-        };
     </script>
 </body>
 </html>
