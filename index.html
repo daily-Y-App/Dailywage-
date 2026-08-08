@@ -27,7 +27,18 @@
             background: var(--bg); 
             color: var(--text-main);
             min-height: 100vh;
-            padding-bottom: 90px;
+            padding-bottom: 160px; /* Increased to accommodate ad and nav */
+        }
+
+        .ad-container {
+            position: fixed;
+            bottom: 75px;
+            left: 0;
+            width: 100%;
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            background: transparent;
         }
 
         /* --- Header --- */
@@ -125,8 +136,6 @@
     </style>
 </head>
 <body>
-    <script type='text/javascript' src='https://pl28344759.effectivegatecpm.com/eb/25/40/eb25401554277dcd898bb0414f0023b0.js'></script>
-
     <div class="app-header">
         <div class="user-info">
             <div class="profile-photo" id="headAv" onclick="showPage('profile')">👷</div>
@@ -188,10 +197,11 @@
         </div>
 
         <div id="history" class="page">
-            <div id="historyList"></div>
-            <div style="text-align: center; margin-top: 15px;">
-                <button onclick="askClearAll()" style="background:none; border:none; color:var(--text-sub); cursor:pointer;">🗑️ <span class="t-clear">စာရင်းအားလုံးဖျက်ရန်</span></button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 5px;">
+                <h3 class="t-history">မှတ်တမ်း</h3>
+                <button onclick="askClearAll()" style="background:#fee2e2; border:1px solid #fecaca; color:#dc2626; padding: 8px 12px; border-radius: 10px; cursor:pointer; font-size: 13px; font-weight: 600;">🗑️ <span class="t-clear">စာရင်းအားလုံးဖျက်ရန်</span></button>
             </div>
+            <div id="historyList"></div>
         </div>
 
         <div id="balance" class="page">
@@ -223,6 +233,10 @@
                 <button class="btn-save" style="margin-top:10px; background:#0f172a;" onclick="window.location.href='https://daily-y-app.github.io/Battle-wage/'">⚔️ GO TO BATTLE</button>
             </div>
         </div>
+    </div>
+
+    <div class="ad-container">
+        <script type='text/javascript' src='https://pl28344759.effectivegatecpm.com/eb/25/40/eb25401554277dcd898bb0414f0023b0.js'></script>
     </div>
 
     <div class="bottom-nav">
