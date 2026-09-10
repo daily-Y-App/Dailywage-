@@ -31,7 +31,10 @@
         }
 
         /* Small visual nudge for the existing ad only; keep its original markup and behavior. */
-        body > script[src*="highperformanceformat.com"] + iframe {
+        body > script:not([src]) + iframe {
+            display: block;
+            max-width: calc(100% - 32px);
+            margin: 0 auto;
             transform: translateX(12px);
         }
 
