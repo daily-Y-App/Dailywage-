@@ -30,6 +30,11 @@
             padding-bottom: 90px;
         }
 
+        /* Small visual nudge for the existing ad only; keep its original markup and behavior. */
+        body > script[src*="highperformanceformat.com"] + iframe {
+            transform: translateX(12px);
+        }
+
         /* --- Header --- */
         .app-header { 
             background: linear-gradient(135deg, var(--primary), var(--secondary)); 
