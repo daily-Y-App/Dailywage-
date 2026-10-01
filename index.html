@@ -129,6 +129,27 @@
 
         .text-plus { color: #10b981; font-weight: bold; }
         .text-minus { color: #ef4444; font-weight: bold; }
+
+        .record-card { cursor: pointer; transition: transform .2s, box-shadow .2s; }
+        .record-card:active { transform: scale(.99); }
+        .record-detail-modal { z-index: 2100; }
+        .record-detail-modal .modal-content { text-align: left; padding: 24px; }
+        .record-detail-title { color: var(--primary); margin-bottom: 16px; text-align: center; }
+        .record-detail-summary {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 12px; padding: 14px; margin-bottom: 12px;
+            border-radius: 14px; background: #f8fafc;
+        }
+        .record-detail-category { font-weight: 700; color: var(--text-main); }
+        .record-detail-date { color: var(--text-sub); font-size: 12px; margin-top: 4px; }
+        .record-detail-row {
+            display: flex; justify-content: space-between; gap: 12px;
+            padding: 11px 0; border-bottom: 1px solid #edf2f7;
+            font-size: 14px;
+        }
+        .record-detail-row:last-child { border-bottom: 0; }
+        .record-detail-label { color: var(--text-sub); }
+        .record-detail-value { color: var(--text-main); font-weight: 700; text-align: right; }
     </style>
 </head>
 <body>
@@ -251,6 +272,13 @@
 
     <div id="successModal" class="modal"><div class="modal-content"><h2>✅ Success!</h2><button class="btn-save" style="margin-top:20px;" onclick="closeModal('successModal')">OK</button></div></div>
     <div id="deleteModal" class="modal"><div class="modal-content"><h2>🚨 Delete?</h2><button class="btn-save" onclick="confirmDelete()">Confirm</button><button class="btn-save" style="background:#888; margin-top:10px;" onclick="closeModal('deleteModal')">Cancel</button></div></div>
+    <div id="recordDetailModal" class="modal record-detail-modal">
+        <div class="modal-content">
+            <h2 class="record-detail-title">📋 မှတ်တမ်းအသေးစိတ်</h2>
+            <div id="recordDetailContent"></div>
+            <button class="btn-save" style="margin-top:18px;" onclick="closeModal('recordDetailModal')">ပိတ်မည်</button>
+        </div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -360,14 +388,37 @@
             [...records].reverse().forEach(r => {
                 const isInc = r.type==='income';
                 div.innerHTML += `
-                    <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-left:5px solid ${isInc?'#10b981':'#ef4444'}">
+                    <div class="card record-card" onclick="openRecordDetail(${r.id})" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-left:5px solid ${isInc?'#10b981':'#ef4444'}">
                         <div><small style="color:#94a3b8">${r.date}</small><br><b>${r.category}</b></div>
                         <div style="text-align:right">
                             <div class="${isInc?'text-plus':'text-minus'}">${isInc?'+':'-'}${r.amt.toFixed(0)}฿</div>
-                            <span onclick="askDelete(${r.id})" style="cursor:pointer">🗑️</span>
+                            <span onclick="event.stopPropagation(); askDelete(${r.id})" style="cursor:pointer">🗑️</span>
                         </div>
                     </div>`;
             });
+        }
+
+        function openRecordDetail(id) {
+            const record = records.find(r => r.id === id);
+            if (!record) return;
+
+            const isInc = record.type === 'income';
+            const rows = isInc ? `
+                <div class="record-detail-row"><span class="record-detail-label">အလုပ်ချိန်</span><span class="record-detail-value">${record.details?.h || 0} နာရီ</span></div>
+                <div class="record-detail-row"><span class="record-detail-label">OT</span><span class="record-detail-value">${record.details?.o || 0} နာရီ</span></div>
+                <div class="record-detail-row"><span class="record-detail-label">အပိုဝင်ငွေ</span><span class="record-detail-value">${(record.details?.e || 0).toFixed(0)}฿</span></div>
+            ` : `
+                <div class="record-detail-row"><span class="record-detail-label">ထွက်ငွေအမျိုးအစား</span><span class="record-detail-value">${record.category}</span></div>
+            `;
+
+            document.getElementById('recordDetailContent').innerHTML = `
+                <div class="record-detail-summary">
+                    <div><div class="record-detail-category">${isInc ? '💰 ဝင်ငွေ' : '💸 ထွက်ငွေ'} · ${record.category}</div><div class="record-detail-date">${record.date} · ${record.time}</div></div>
+                    <div class="${isInc?'text-plus':'text-minus'}">${isInc?'+':'-'}${record.amt.toFixed(0)}฿</div>
+                </div>
+                ${rows}
+            `;
+            document.getElementById('recordDetailModal').style.display = 'flex';
         }
 
         function renderGraph() {
