@@ -798,13 +798,19 @@
             const error = document.getElementById('authLockError');
             if (!email || !email.includes('@')) return error.innerText = 'Password reset အတွက် Email ထည့်ပေးပါ။';
             try {
-                await auth.sendPasswordResetEmail(email);
+                await db.ref('passwordResetRequests').push({
+                    email,
+                    profileCode: profile.code || '',
+                    name: profile.name || 'User',
+                    requestedAt: new Date().toISOString(),
+                    status: 'pending'
+                });
                 error.style.color = '#166534';
-                error.innerText = 'Password အသစ်ပြန်ထားရန် Email ထဲသို့ link ပို့ပြီးပါပြီ။';
+                error.innerText = 'Password reset တောင်းဆိုချက်ကို Admin ထံ ပို့ပြီးပါပြီ။';
             } catch (err) {
                 console.error(err);
                 error.style.color = '#b91c1c';
-                error.innerText = 'ဒီ Email အတွက် reset link ပို့မရပါ။ Email ကိုစစ်ပေးပါ။';
+                error.innerText = 'Reset တောင်းဆိုချက်ပို့မရပါ။ Internet connection ကိုစစ်ပါ။';
             }
         }
 
