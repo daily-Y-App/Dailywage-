@@ -195,6 +195,7 @@
             <input type="password" id="lockPassword" placeholder="Password" autocomplete="current-password">
             <button class="auth-lock-btn" onclick="unlockUserPage()">🔓 Login ဝင်မည်</button>
             <button class="auth-lock-btn secondary" onclick="registerUserFromLock()">အသစ်ဖန်တီးပြီး ဖွင့်မည်</button>
+            <button class="auth-lock-btn" style="background:#64748b;" onclick="sendUserPasswordReset()">📧 Password မေ့သွားပါသလား?</button>
             <div id="authLockError" class="auth-lock-error"></div>
         </div>
     </div>
@@ -789,6 +790,21 @@
             } catch (err) {
                 console.error(err);
                 error.innerText = err.code === 'auth/email-already-in-use' ? 'ဒီ Email ရှိပြီးသားပါ။ Login ဝင်ပါ။' : 'Account ဖန်တီးမရပါ။ Firebase Auth setting ကိုစစ်ပါ။';
+            }
+        }
+
+        async function sendUserPasswordReset() {
+            const email = document.getElementById('lockEmail').value.trim().toLowerCase();
+            const error = document.getElementById('authLockError');
+            if (!email || !email.includes('@')) return error.innerText = 'Password reset အတွက် Email ထည့်ပေးပါ။';
+            try {
+                await auth.sendPasswordResetEmail(email);
+                error.style.color = '#166534';
+                error.innerText = 'Password အသစ်ပြန်ထားရန် Email ထဲသို့ link ပို့ပြီးပါပြီ။';
+            } catch (err) {
+                console.error(err);
+                error.style.color = '#b91c1c';
+                error.innerText = 'ဒီ Email အတွက် reset link ပို့မရပါ။ Email ကိုစစ်ပေးပါ။';
             }
         }
 
