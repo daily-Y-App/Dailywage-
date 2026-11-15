@@ -175,9 +175,29 @@
         .avatar-choices { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin: 12px 0 4px; }
         .avatar-choice { border: 1px solid #dbeafe; border-radius: 10px; background: #fff; padding: 7px 2px; font-size: 24px; cursor: pointer; transition: .2s; }
         .avatar-choice:hover, .avatar-choice.selected { background: #dbeafe; border-color: var(--primary); transform: translateY(-1px); }
+        .auth-lock { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(26,42,108,.98)); }
+        .auth-lock-card { width: min(420px,100%); padding: 24px; border-radius: 22px; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.3); text-align: center; }
+        .auth-lock-card h2 { color: var(--primary); margin-bottom: 8px; }
+        .auth-lock-card p { color: var(--text-sub); font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+        .auth-lock-card input { width: 100%; margin-top: 10px; }
+        .auth-lock-btn { width: 100%; margin-top: 14px; padding: 13px; border: 0; border-radius: 11px; background: var(--primary); color: #fff; font-weight: 800; cursor: pointer; }
+        .auth-lock-btn.secondary { background: #166534; }
+        .auth-lock-error { min-height: 20px; margin-top: 10px; color: #b91c1c; font-size: 12px; }
     </style>
 </head>
 <body>
+    <div id="authLock" class="auth-lock">
+        <div class="auth-lock-card">
+            <div style="font-size:42px;">🔐</div>
+            <h2>DailyWage Screen Lock</h2>
+            <p>Email နှင့် Password ကိုက်ညီမှသာ ဒီစာမျက်နှာကို ဖွင့်ပေးပါမယ်။ Password ကို Database ထဲ မသိမ်းပါ။</p>
+            <input type="email" id="lockEmail" placeholder="Email" autocomplete="username">
+            <input type="password" id="lockPassword" placeholder="Password" autocomplete="current-password">
+            <button class="auth-lock-btn" onclick="unlockUserPage()">🔓 Login ဝင်မည်</button>
+            <button class="auth-lock-btn secondary" onclick="registerUserFromLock()">အသစ်ဖန်တီးပြီး ဖွင့်မည်</button>
+            <div id="authLockError" class="auth-lock-error"></div>
+        </div>
+    </div>
     <script>
         atOptions = {
             'key' : '1f368fdf67bf1944d873877b1354fd14',
@@ -346,6 +366,7 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const auth = firebase.auth();
+        auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(error => console.warn('Auth persistence:', error));
         const storage = firebase.storage();
 
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
@@ -727,6 +748,55 @@
             }
         }
 
+        function applyAuthenticatedUser(user) {
+            profile.email = user.email || profile.email;
+            profile.authUid = user.uid;
+            localStorage.setItem('f_prof', JSON.stringify(profile));
+            document.getElementById('lockEmail').value = profile.email || '';
+            document.getElementById('authLock').style.display = 'none';
+            document.getElementById('authLockError').innerText = '';
+            updateHeader();
+            syncFromFirebase();
+        }
+
+        async function unlockUserPage() {
+            const email = document.getElementById('lockEmail').value.trim().toLowerCase();
+            const password = document.getElementById('lockPassword').value;
+            const error = document.getElementById('authLockError');
+            if (!email || !password) return error.innerText = 'Email နှင့် Password ထည့်ပေးပါ။';
+            try {
+                const credential = await auth.signInWithEmailAndPassword(email, password);
+                applyAuthenticatedUser(credential.user);
+                document.getElementById('lockPassword').value = '';
+            } catch (err) {
+                console.error(err);
+                error.innerText = err.code === 'auth/operation-not-allowed'
+                    ? 'Firebase Console မှာ Email/Password Sign-in ကို Enable လုပ်ပေးပါ။'
+                    : 'Email သို့မဟုတ် Password မမှန်ပါ။';
+            }
+        }
+
+        async function registerUserFromLock() {
+            const email = document.getElementById('lockEmail').value.trim().toLowerCase();
+            const password = document.getElementById('lockPassword').value;
+            const error = document.getElementById('authLockError');
+            if (!email || password.length < 6) return error.innerText = 'Email မှန်ကန်ပြီး Password အနည်းဆုံး 6 လုံးထည့်ပါ။';
+            try {
+                const credential = await auth.createUserWithEmailAndPassword(email, password);
+                applyAuthenticatedUser(credential.user);
+                syncToFirebase();
+                document.getElementById('lockPassword').value = '';
+            } catch (err) {
+                console.error(err);
+                error.innerText = err.code === 'auth/email-already-in-use' ? 'ဒီ Email ရှိပြီးသားပါ။ Login ဝင်ပါ။' : 'Account ဖန်တီးမရပါ။ Firebase Auth setting ကိုစစ်ပါ။';
+            }
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) applyAuthenticatedUser(user);
+            else document.getElementById('authLock').style.display = 'flex';
+        });
+
         function goToBattle() {
             window.location.href = `https://daily-y-app.github.io/Battle-wage/?code=${encodeURIComponent(profile.code)}`;
         }
@@ -754,8 +824,9 @@
             document.getElementById('pWage').value = profile.wage;
             document.getElementById('pOt').value = profile.ot;
             document.getElementById('pEmail').value = profile.email || '';
+            document.getElementById('lockEmail').value = profile.email || '';
             document.getElementById('topLang').value = profile.lang;
-            updateHeader(); setLang(profile.lang); syncFromFirebase();
+            updateHeader(); setLang(profile.lang);
         };
     </script>
     <script>
