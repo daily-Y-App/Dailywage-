@@ -7,6 +7,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -304,6 +305,9 @@
                 <div class="form-group"><label>တနေ့လုပ်အားခ</label><input type="number" id="pWage"></div>
                 <div class="form-group"><label>OT နာရီခ</label><input type="number" id="pOt"></div>
                 <button class="btn-save" onclick="saveProfile()">💾 Update Profile</button>
+                <div class="form-group" style="margin-top:18px;"><label>Login Email</label><input type="email" id="pEmail" placeholder="you@example.com" autocomplete="email"></div>
+                <div class="form-group"><label>Password (အနည်းဆုံး 6 လုံး)</label><input type="password" id="pPassword" placeholder="••••••••" autocomplete="new-password"></div>
+                <button class="btn-save" style="background:#166534;" onclick="saveProfileAuth()">🔐 Email + Password ချိတ်မည်</button>
                 <button class="btn-save" style="margin-top:10px; background:#0f172a;" onclick="goToBattle()">⚔️ GO TO BATTLE</button>
             </div>
         </div>
@@ -341,6 +345,7 @@
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const auth = firebase.auth();
         const storage = firebase.storage();
 
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
@@ -679,8 +684,47 @@
             profile.ot = parseFloat(document.getElementById('pOt').value);
             profile.avatar = profile.avatar || profile.av || '👷';
             profile.avatarMode = profile.avatarMode || 'emoji';
+            if (auth.currentUser) {
+                profile.email = auth.currentUser.email || profile.email;
+                profile.authUid = auth.currentUser.uid;
+            }
             localStorage.setItem('f_prof', JSON.stringify(profile));
             updateHeader(); syncFromFirebase(); syncToFirebase(); alert("Saved!");
+        }
+
+        async function saveProfileAuth() {
+            const email = document.getElementById('pEmail').value.trim().toLowerCase();
+            const password = document.getElementById('pPassword').value;
+            if (!email || !email.includes('@')) return alert('မှန်ကန်သော Email ထည့်ပေးပါ။');
+            if (password.length < 6) return alert('Password အနည်းဆုံး 6 လုံး ထည့်ပေးပါ။');
+            try {
+                let credential;
+                if (auth.currentUser && auth.currentUser.email === email) {
+                    await auth.currentUser.updatePassword(password);
+                    credential = { user: auth.currentUser };
+                } else {
+                    try {
+                        credential = await auth.createUserWithEmailAndPassword(email, password);
+                    } catch (createError) {
+                        if (createError.code !== 'auth/email-already-in-use') throw createError;
+                        credential = await auth.signInWithEmailAndPassword(email, password);
+                    }
+                }
+                profile.email = credential.user.email;
+                profile.authUid = credential.user.uid;
+                localStorage.setItem('f_prof', JSON.stringify(profile));
+                syncToFirebase();
+                document.getElementById('pPassword').value = '';
+                alert('Email/Password ကို Firebase Authentication နဲ့ ချိတ်ပြီးပါပြီ။ Password ကို Database ထဲ မသိမ်းပါ။');
+            } catch (error) {
+                console.error('Profile auth failed:', error);
+                const message = error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
+                    ? 'Email သို့မဟုတ် Password မမှန်ပါ။'
+                    : error.code === 'auth/operation-not-allowed'
+                        ? 'Firebase Console မှာ Email/Password Sign-in ကို Enable လုပ်ပေးပါ။'
+                        : 'Email/Password ချိတ်ဆက်မရပါ။ Internet နှင့် Firebase Auth setting ကိုစစ်ပါ။';
+                alert(message);
+            }
         }
 
         function goToBattle() {
@@ -709,6 +753,7 @@
             document.getElementById('pCode').value = profile.code;
             document.getElementById('pWage').value = profile.wage;
             document.getElementById('pOt').value = profile.ot;
+            document.getElementById('pEmail').value = profile.email || '';
             document.getElementById('topLang').value = profile.lang;
             updateHeader(); setLang(profile.lang); syncFromFirebase();
         };
