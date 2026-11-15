@@ -171,6 +171,9 @@
         .avatar-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .avatar-btn { border: 0; border-radius: 10px; padding: 10px 14px; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; }
         .avatar-help { display: block; color: var(--text-sub); font-size: 11px; margin-top: 7px; }
+        .avatar-choices { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin: 12px 0 4px; }
+        .avatar-choice { border: 1px solid #dbeafe; border-radius: 10px; background: #fff; padding: 7px 2px; font-size: 24px; cursor: pointer; transition: .2s; }
+        .avatar-choice:hover, .avatar-choice.selected { background: #dbeafe; border-color: var(--primary); transform: translateY(-1px); }
     </style>
 </head>
 <body>
@@ -281,6 +284,21 @@
                 <h3 style="margin-bottom:15px;" class="t-profile">ကိုယ်ရေးအချက်အလက်</h3>
                 <div class="avatar-uploader">
                     <div id="avatarPreview" class="avatar-preview">👷</div>
+                    <div class="avatar-choices" aria-label="ကိုယ်စားပြုအရုပ်ရွေးရန်">
+                        <button type="button" class="avatar-choice" data-avatar="👷" onclick="selectAvatar('👷')">👷</button>
+                        <button type="button" class="avatar-choice" data-avatar="👩‍💼" onclick="selectAvatar('👩‍💼')">👩‍💼</button>
+                        <button type="button" class="avatar-choice" data-avatar="👨‍💼" onclick="selectAvatar('👨‍💼')">👨‍💼</button>
+                        <button type="button" class="avatar-choice" data-avatar="👨‍🔧" onclick="selectAvatar('👨‍🔧')">👨‍🔧</button>
+                        <button type="button" class="avatar-choice" data-avatar="👩‍🔧" onclick="selectAvatar('👩‍🔧')">👩‍🔧</button>
+                        <button type="button" class="avatar-choice" data-avatar="🧑‍🌾" onclick="selectAvatar('🧑‍🌾')">🧑‍🌾</button>
+                        <button type="button" class="avatar-choice" data-avatar="🧑‍🍳" onclick="selectAvatar('🧑‍🍳')">🧑‍🍳</button>
+                        <button type="button" class="avatar-choice" data-avatar="🧑‍🚀" onclick="selectAvatar('🧑‍🚀')">🧑‍🚀</button>
+                        <button type="button" class="avatar-choice" data-avatar="🦸" onclick="selectAvatar('🦸')">🦸</button>
+                        <button type="button" class="avatar-choice" data-avatar="🦸‍♀️" onclick="selectAvatar('🦸‍♀️')">🦸‍♀️</button>
+                        <button type="button" class="avatar-choice" data-avatar="🐼" onclick="selectAvatar('🐼')">🐼</button>
+                        <button type="button" class="avatar-choice" data-avatar="🦁" onclick="selectAvatar('🦁')">🦁</button>
+                    </div>
+                    <span class="avatar-help">Emoji / ကိုယ်စားပြုအရုပ်တစ်ခုရွေးပါ။ ရွေးချယ်မှုကို Firebase တွင် အလိုအလျောက်သိမ်းမည်။</span>
                     <input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="handleAvatarUpload(event)">
                     <button type="button" class="avatar-btn" onclick="document.getElementById('avatarInput').click()">📷 Gallery မှ ပုံတင်ရန်</button>
                     <span class="avatar-help">JPG / PNG / WebP · 5MB အောက် · Firebase Storage သို့ သိမ်းမည်</span>
@@ -290,7 +308,7 @@
                 <div class="form-group"><label>တနေ့လုပ်အားခ</label><input type="number" id="pWage"></div>
                 <div class="form-group"><label>OT နာရီခ</label><input type="number" id="pOt"></div>
                 <button class="btn-save" onclick="saveProfile()">💾 Update Profile</button>
-                <button class="btn-save" style="margin-top:10px; background:#0f172a;" onclick="window.location.href='https://daily-y-app.github.io/Battle-wage/'">⚔️ GO TO BATTLE</button>
+                <button class="btn-save" style="margin-top:10px; background:#0f172a;" onclick="goToBattle()">⚔️ GO TO BATTLE</button>
             </div>
         </div>
     </div>
@@ -331,6 +349,8 @@
 
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
         let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
+        const profileCodeFromUrl = new URLSearchParams(location.search).get('code');
+        if (profileCodeFromUrl) profile.code = profileCodeFromUrl;
         let myChart = null;
         let firebaseListenerCode = null;
 
@@ -445,11 +465,21 @@
 
         function renderAvatar() {
             const avatarUrl = profile.avatarUrl;
+            const selectedAvatar = profile.avatar || profile.av || '👷';
             const headerAvatar = document.getElementById('headAv');
             const preview = document.getElementById('avatarPreview');
-            const imageHtml = avatarUrl ? `<img src="${avatarUrl}" alt="Profile photo">` : '👷';
+            const imageHtml = profile.avatarMode === 'image' && avatarUrl ? `<img src="${avatarUrl}" alt="Profile photo">` : selectedAvatar;
             if (headerAvatar) headerAvatar.innerHTML = imageHtml;
             if (preview) preview.innerHTML = imageHtml;
+            document.querySelectorAll('.avatar-choice').forEach(button => button.classList.toggle('selected', button.dataset.avatar === selectedAvatar));
+        }
+
+        function selectAvatar(avatar) {
+            profile.avatar = avatar;
+            profile.avatarMode = 'emoji';
+            localStorage.setItem('f_prof', JSON.stringify(profile));
+            updateHeader();
+            syncToFirebase();
         }
 
         function resizeImageToBlob(file) {
@@ -491,6 +521,7 @@
                 const upload = await fileRef.put(blob, { contentType: 'image/jpeg', cacheControl: 'public,max-age=3600' });
                 profile.avatarUrl = await upload.ref.getDownloadURL();
                 profile.avatarPath = fileRef.fullPath;
+                profile.avatarMode = 'image';
                 localStorage.setItem('f_prof', JSON.stringify(profile));
                 updateHeader();
                 syncToFirebase();
@@ -650,8 +681,14 @@
             profile.code = document.getElementById('pCode').value;
             profile.wage = parseFloat(document.getElementById('pWage').value);
             profile.ot = parseFloat(document.getElementById('pOt').value);
+            profile.avatar = profile.avatar || profile.av || '👷';
+            profile.avatarMode = profile.avatarMode || 'emoji';
             localStorage.setItem('f_prof', JSON.stringify(profile));
             updateHeader(); syncFromFirebase(); syncToFirebase(); alert("Saved!");
+        }
+
+        function goToBattle() {
+            window.location.href = `https://daily-y-app.github.io/Battle-wage/?code=${encodeURIComponent(profile.code)}`;
         }
 
         function updateHeader() {
