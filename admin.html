@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyWage Admin Profile Inspector</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root { --primary:#1a2a6c; --secondary:#b21f1f; --bg:#f1f5f9; --text:#1e293b; --muted:#64748b; }
+        * { box-sizing:border-box; }
+        body { margin:0; min-height:100vh; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:linear-gradient(135deg,#eef2ff,#fff1f2); color:var(--text); }
+        .shell { width:min(680px,100%); margin:0 auto; padding:20px 14px 40px; }
+        .hero { color:white; background:linear-gradient(135deg,var(--primary),var(--secondary)); border-radius:24px; padding:22px; box-shadow:0 12px 28px rgba(26,42,108,.2); }
+        .hero h1 { margin:0 0 6px; font-size:24px; }
+        .hero p { margin:0; opacity:.85; font-size:13px; }
+        .card { background:white; border:1px solid #e2e8f0; border-radius:20px; padding:18px; margin-top:14px; box-shadow:0 8px 22px rgba(15,23,42,.06); }
+        label { display:block; color:var(--muted); font-size:13px; font-weight:700; margin-bottom:7px; }
+        .search-row { display:flex; gap:8px; }
+        input { flex:1; min-width:0; border:2px solid #e2e8f0; border-radius:12px; padding:13px; font-size:16px; outline:none; }
+        input:focus { border-color:#6366f1; }
+        button { border:0; border-radius:12px; padding:0 18px; color:white; background:linear-gradient(135deg,var(--primary),var(--secondary)); font-weight:800; cursor:pointer; }
+        button:disabled { opacity:.55; cursor:wait; }
+        .status { min-height:20px; margin-top:12px; color:var(--muted); font-size:13px; }
+        .status.error { color:#b91c1c; }
+        .profile-head { display:flex; align-items:center; gap:14px; padding-bottom:16px; border-bottom:1px solid #e2e8f0; }
+        .avatar { width:82px; height:82px; flex:0 0 82px; display:grid; place-items:center; overflow:hidden; border-radius:22px; background:#dbeafe; color:var(--primary); font-size:44px; border:3px solid #bfdbfe; }
+        .avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+        .profile-head h2 { margin:0 0 5px; font-size:20px; }
+        .profile-head p { margin:0; color:var(--muted); font-size:13px; }
+        .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:16px; }
+        .item { padding:11px; border-radius:12px; background:#f8fafc; border:1px solid #e2e8f0; }
+        .item small { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }
+        .item strong { display:block; overflow-wrap:anywhere; }
+        .avatar-url { margin-top:12px; padding:10px; border-radius:10px; background:#f8fafc; color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+        .empty { text-align:center; color:var(--muted); padding:22px 8px; }
+        .notice { margin-top:12px; padding:11px 12px; border-radius:10px; background:#fffbeb; border:1px solid #fde68a; color:#92400e; font-size:12px; line-height:1.5; }
+        @media (max-width:420px) { .search-row { flex-direction:column; } button { min-height:46px; } }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <h1>🔎 DailyWage Admin</h1>
+            <p>Firebase ထဲရှိ Profile နှင့် Avatar data ကို read-only စစ်ဆေးရန်</p>
+        </section>
+
+        <section class="card">
+            <label for="profileCode">Profile Code</label>
+            <div class="search-row">
+                <input id="profileCode" type="text" placeholder="ဥပမာ EMP001" autocomplete="off">
+                <button id="searchButton" type="button" onclick="inspectProfile()">ရှာမည်</button>
+            </div>
+            <div id="status" class="status"></div>
+            <div class="notice">ဤစာမျက်နှာသည် profile code ထည့်ပြီး data တစ်ခုချင်းစီကိုသာ ဖတ်ပါသည်။ Firebase Rules က read permission မပေးထားပါက data မပြနိုင်ပါ။</div>
+        </section>
+
+        <section id="result" class="card" hidden></section>
+    </main>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7T7WZg0fLGTw6ShqDHjOva-btNF6O1AM",
+            authDomain: "seafood-oder.firebaseapp.com",
+            databaseURL: "https://seafood-oder-default-rtdb.firebaseio.com",
+            projectId: "seafood-oder",
+            storageBucket: "seafood-oder.firebasestorage.app",
+            messagingSenderId: "428949391732",
+            appId: "1:428949391732:web:6aa0a31a4f4ba33765c421"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function setStatus(message, isError = false) {
+            const el = document.getElementById('status');
+            el.innerText = message;
+            el.className = `status${isError ? ' error' : ''}`;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character]));
+        }
+
+        function renderAvatar(profile) {
+            const avatar = profile.avatar || profile.av || '👤';
+            if (profile.avatarMode === 'image' && profile.avatarUrl) {
+                return `<img src="${escapeHtml(profile.avatarUrl)}" alt="Profile avatar">`;
+            }
+            return escapeHtml(avatar);
+        }
+
+        function renderResult(code, data) {
+            const profile = data.profile || {};
+            const records = data.records ? Object.values(data.records) : [];
+            const incomeCount = records.filter(record => record.type === 'income').length;
+            const expenseCount = records.filter(record => record.type === 'expense').length;
+            const result = document.getElementById('result');
+            result.hidden = false;
+            result.innerHTML = `
+                <div class="profile-head">
+                    <div class="avatar">${renderAvatar(profile)}</div>
+                    <div>
+                        <h2>${escapeHtml(profile.name || 'အမည်မရှိ')}</h2>
+                        <p>CODE: ${escapeHtml(profile.code || code)}</p>
+                    </div>
+                </div>
+                <div class="grid">
+                    <div class="item"><small>တစ်ရက်လုပ်အားခ</small><strong>${escapeHtml(profile.wage || 0)}฿</strong></div>
+                    <div class="item"><small>OT တစ်နာရီခ</small><strong>${escapeHtml(profile.ot || 0)}฿</strong></div>
+                    <div class="item"><small>Avatar အမျိုးအစား</small><strong>${escapeHtml(profile.avatarMode || 'emoji')}</strong></div>
+                    <div class="item"><small>ရွေးထားသော Avatar</small><strong>${escapeHtml(profile.avatar || profile.av || '👤')}</strong></div>
+                    <div class="item"><small>ဝင်ငွေမှတ်တမ်း</small><strong>${incomeCount} ကြိမ်</strong></div>
+                    <div class="item"><small>ထွက်ငွေမှတ်တမ်း</small><strong>${expenseCount} ကြိမ်</strong></div>
+                </div>
+                ${profile.avatarUrl ? `<div class="avatar-url"><strong>Avatar URL:</strong><br>${escapeHtml(profile.avatarUrl)}</div>` : ''}
+                <div class="avatar-url"><strong>နောက်ဆုံး update:</strong> ${escapeHtml(data.lastUpdate || 'မရှိသေးပါ')}</div>
+            `;
+        }
+
+        async function inspectProfile() {
+            const input = document.getElementById('profileCode');
+            const button = document.getElementById('searchButton');
+            const result = document.getElementById('result');
+            const code = input.value.trim();
+            if (!code) return setStatus('Profile Code ထည့်ပေးပါ။', true);
+            button.disabled = true;
+            result.hidden = true;
+            setStatus('Firebase မှ data ရှာဖွေနေပါသည်...');
+            try {
+                const snapshot = await db.ref('users/' + code).once('value');
+                if (!snapshot.exists()) {
+                    setStatus('ဤ Profile Code အတွက် data မတွေ့ပါ။', true);
+                    return;
+                }
+                renderResult(code, snapshot.val());
+                setStatus('Profile data ကို အောင်မြင်စွာ ဖတ်ပြီးပါပြီ။');
+            } catch (error) {
+                console.error(error);
+                setStatus('Firebase data ဖတ်မရပါ။ Realtime Database Rules ကို စစ်ပေးပါ။', true);
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        const codeFromUrl = new URLSearchParams(location.search).get('code');
+        if (codeFromUrl) {
+            document.getElementById('profileCode').value = codeFromUrl;
+            inspectProfile();
+        }
+        document.getElementById('profileCode').addEventListener('keydown', event => {
+            if (event.key === 'Enter') inspectProfile();
+        });
+    </script>
+</body>
+</html>
