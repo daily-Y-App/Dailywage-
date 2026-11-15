@@ -159,6 +159,11 @@
         .insight-progress { height: 8px; border-radius: 99px; background: #e2e8f0; overflow: hidden; margin-top: 5px; }
         .insight-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2563eb, #10b981); }
         .insight-note { margin-top: 10px; color: var(--text-sub); font-size: 12px; line-height: 1.5; }
+        .monthly-notification { margin-top: 12px; padding: 12px; border-radius: 12px; font-size: 12px; line-height: 1.5; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; }
+        .monthly-notification.good { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+        .monthly-notification.warning { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+        .monthly-notification.danger { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+        .notification-btn { margin-top: 8px; border: 0; border-radius: 8px; padding: 7px 10px; background: rgba(255,255,255,.75); color: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -253,6 +258,7 @@
                 <h4>📈 ဒီလအခြေအနေ</h4>
                 <div class="insight-grid"></div>
                 <div class="insight-note">မှတ်တမ်းထည့်ပြီးသည့်အတိုင်း ဒီလအတွက် အခြေအနေကို အလိုအလျောက်တွက်ပြပါမည်။</div>
+                <div id="monthlyNotification" class="monthly-notification"></div>
             </div>
         </div>
 
@@ -417,6 +423,7 @@
             records.push({ id:Date.now(), type, date, time, amt, category:cat, details:det });
             localStorage.setItem('f_recs', JSON.stringify(records));
             syncToFirebase();
+            updateMonthlyInsight();
             document.getElementById('successModal').style.display = 'flex';
         }
 
@@ -467,6 +474,44 @@
             el.querySelector('.insight-note').innerText = incomeTotal === 0
                 ? 'ဒီလဝင်ငွေမှတ်တမ်း မရှိသေးပါ။'
                 : `လက်ကျန် ${net.toFixed(0)}฿ ဖြစ်ပြီး ဝင်ငွေရဲ့ ${expenseRate.toFixed(0)}% ကို အသုံးပြုထားပါတယ်။ ${net >= 0 ? 'လက်ကျန်ကောင်းနေပါတယ်။' : 'ထွက်ငွေကို လျှော့ချဖို့ လိုအပ်ပါတယ်။'}`;
+            const notification = document.getElementById('monthlyNotification');
+            let status = 'info';
+            let message = 'ဒီလရာခိုင်နှုန်းအခြေအနေကို စောင့်ကြည့်နေပါတယ်။';
+            if (incomeTotal === 0) {
+                message = '🔔 ဒီလဝင်ငွေမှတ်တမ်း မရှိသေးပါ။ ဝင်ငွေမှတ်တမ်းထည့်ပြီး အခြေအနေကို စတင်တွက်ချက်ပါ။';
+            } else if (net < 0) {
+                status = 'danger';
+                message = `🚨 သတိပေးချက် — ဒီလလက်ကျန် အနုတ် ${Math.abs(net).toFixed(0)}฿ ဖြစ်နေပြီး အသုံးစရိတ်က ဝင်ငွေထက် ${Math.abs(savingsRate).toFixed(0)}% ကျော်နေပါတယ်။`;
+            } else if (savingsRate < 20 || expenseRate >= 80) {
+                status = 'warning';
+                message = `⚠️ သတိပြုရန် — ဒီလလက်ကျန်နှုန်း ${savingsRate.toFixed(0)}% သာရှိပြီး ဝင်ငွေရဲ့ ${expenseRate.toFixed(0)}% သုံးစွဲထားပါတယ်။`;
+            } else if (savingsRate >= 50) {
+                status = 'good';
+                message = `✅ အခြေအနေကောင်း — ဒီလလက်ကျန်နှုန်း ${savingsRate.toFixed(0)}% ရှိပါတယ်။ ဆက်လက်ထိန်းသိမ်းပါ။`;
+            } else {
+                message = `ℹ️ ဒီလလက်ကျန်နှုန်း ${savingsRate.toFixed(0)}% ရှိပြီး ဝင်ငွေရဲ့ ${expenseRate.toFixed(0)}% သုံးစွဲထားပါတယ်။`;
+            }
+            notification.className = `monthly-notification ${status === 'info' ? '' : status}`;
+            notification.innerHTML = `${message}<br><button class="notification-btn" onclick="enableMonthlyNotifications()">🔔 ဖုန်းသတိပေးချက် ဖွင့်ရန်</button>`;
+            sendMonthlyBrowserNotification(monthKey, status, message);
+        }
+
+        function enableMonthlyNotifications() {
+            if (!('Notification' in window)) return alert('ဒီ browser မှာ notification မထောက်ပံ့ပါ။');
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    alert('ဒီလအခြေအနေ notification ကို ဖွင့်ပြီးပါပြီ။');
+                    updateMonthlyInsight();
+                }
+            });
+        }
+
+        function sendMonthlyBrowserNotification(monthKey, status, message) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            const key = `${monthKey}-${status}`;
+            if (localStorage.getItem('monthly_notice_key') === key) return;
+            localStorage.setItem('monthly_notice_key', key);
+            new Notification('DailyWage — ဒီလအခြေအနေ', { body: message.replace(/[🔔🚨⚠️✅ℹ️]/g, '').trim() });
         }
 
         function renderList() {
