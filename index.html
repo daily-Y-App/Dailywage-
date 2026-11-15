@@ -150,6 +150,15 @@
         .record-detail-row:last-child { border-bottom: 0; }
         .record-detail-label { color: var(--text-sub); }
         .record-detail-value { color: var(--text-main); font-weight: 700; text-align: right; }
+        .monthly-insight { margin-top: 20px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #eff6ff, #f8fafc); border: 1px solid #dbeafe; }
+        .monthly-insight h4 { color: var(--primary); margin-bottom: 10px; }
+        .insight-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .insight-stat { background: white; border-radius: 12px; padding: 10px; border: 1px solid #e2e8f0; }
+        .insight-label { display: block; color: var(--text-sub); font-size: 11px; margin-bottom: 4px; }
+        .insight-value { font-weight: 800; color: var(--text-main); }
+        .insight-progress { height: 8px; border-radius: 99px; background: #e2e8f0; overflow: hidden; margin-top: 5px; }
+        .insight-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2563eb, #10b981); }
+        .insight-note { margin-top: 10px; color: var(--text-sub); font-size: 12px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -240,6 +249,11 @@
                 </div>
             </div>
             <div id="breakdownList" class="card"></div>
+            <div id="monthlyInsight" class="monthly-insight">
+                <h4>📈 ဒီလအခြေအနေ</h4>
+                <div class="insight-grid"></div>
+                <div class="insight-note">မှတ်တမ်းထည့်ပြီးသည့်အတိုင်း ဒီလအတွက် အခြေအနေကို အလိုအလျောက်တွက်ပြပါမည်။</div>
+            </div>
         </div>
 
         <div id="graph" class="page">
@@ -298,6 +312,7 @@
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
         let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
         let myChart = null;
+        let firebaseListenerCode = null;
 
         const langMap = {
             my: { income:"ဝင်ငွေ", expense:"ထွက်ငွေ", history:"မှတ်တမ်း", balance:"လက်ကျန်", graph:"ဂရပ်", profile:"ကိုယ်ရေး", date:"ရက်စွဲ", save:"သိမ်းမည်", totalBal:"စုစုပေါင်းလက်ကျန်ငွေ", work:"ရက်ပေါင်း", hours:"အလုပ်ချိန်", ot:"OT", clear:"စာရင်းဖျက်ရန်", amount:"ပမာဏ", cat:"အမျိုးအစား", extra:"အပိုဝင်ငွေ" },
@@ -338,6 +353,40 @@
             db.ref('users/' + profile.code).set({ profile, records, lastUpdate: new Date().toISOString() });
         }
 
+        function recordKey(record) {
+            return String(record.id || [record.date, record.type, record.category, record.amt, JSON.stringify(record.details || {})].join('|'));
+        }
+
+        function syncFromFirebase() {
+            if (!profile.code) return;
+            if (firebaseListenerCode && firebaseListenerCode !== profile.code) {
+                db.ref('users/' + firebaseListenerCode).off('value');
+            }
+            firebaseListenerCode = profile.code;
+            db.ref('users/' + profile.code).on('value', snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+                if (data.records) {
+                    const remoteRecords = Array.isArray(data.records) ? data.records : Object.values(data.records);
+                    const mergedMap = new Map();
+                    [...records, ...remoteRecords].forEach(record => mergedMap.set(recordKey(record), record));
+                    const merged = Array.from(mergedMap.values());
+                    if (merged.length !== records.length || remoteRecords.length !== records.length) {
+                        records = merged;
+                        localStorage.setItem('f_recs', JSON.stringify(records));
+                        if (document.getElementById('history')?.classList.contains('active')) renderList();
+                        if (document.getElementById('balance')?.classList.contains('active')) updateBalance();
+                        syncToFirebase();
+                    }
+                }
+                if (data.profile && data.profile.code === profile.code) {
+                    profile = { ...profile, ...data.profile };
+                    localStorage.setItem('f_prof', JSON.stringify(profile));
+                    updateHeader();
+                }
+            });
+        }
+
         function saveData(type) {
             const date = document.getElementById(type==='income'?'iDate':'eDate').value;
             if(!date) return alert("Please select date");
@@ -348,12 +397,21 @@
                 const h = parseFloat(document.getElementById('iHours').value)||0;
                 const o = parseFloat(document.getElementById('iOt').value)||0;
                 const e = parseFloat(document.getElementById('iExtra').value)||0;
+                if (records.some(r => r.date === date && r.type === 'income')) {
+                    return alert("ဒီရက်အတွက် ဝင်ငွေမှတ်တမ်း ရှိပြီးသားဖြစ်ပါတယ်။ တစ်ရက်ကို နှစ်ကြိမ် ထပ်မမှတ်နိုင်ပါ။");
+                }
+                if (h <= 0 && o <= 0 && e <= 0) return alert("အလုပ်ချိန်၊ OT သို့မဟုတ် အပိုဝင်ငွေ တစ်ခုခုထည့်ပေးပါ။");
                 amt = (h/8 * profile.wage) + (o * profile.ot) + e;
                 cat = langMap[profile.lang].income;
                 det = { h, o, e };
             } else {
                 amt = parseFloat(document.getElementById('eAmount').value) || 0;
-                cat = document.getElementById('eCat').value === 'custom' ? document.getElementById('customCat').value : document.getElementById('eCat').value;
+                cat = (document.getElementById('eCat').value === 'custom' ? document.getElementById('customCat').value : document.getElementById('eCat').value).trim();
+                if (!cat) return alert("ထွက်ငွေအမျိုးအစား ထည့်ပေးပါ။");
+                if (amt <= 0) return alert("ထွက်ငွေပမာဏ မှန်ကန်စွာထည့်ပေးပါ။");
+                if (records.some(r => r.date === date && r.type === 'expense' && String(r.category || '').trim() === cat)) {
+                    return alert("ဒီရက်အတွက် ဒီထွက်ငွေအမျိုးအစားကို မှတ်တမ်းရှိပြီးသားဖြစ်ပါတယ်။ အမျိုးအစားမတူပါက ထပ်ထည့်နိုင်ပါတယ်။");
+                }
             }
 
             records.push({ id:Date.now(), type, date, time, amt, category:cat, details:det });
@@ -365,10 +423,10 @@
         function updateBalance() {
             const inc = records.filter(r => r.type === 'income');
             const expTotal = records.filter(r => r.type === 'expense').reduce((a, b) => a + b.amt, 0);
-            const wageTotal = inc.reduce((a, b) => a + (b.details.h/8 * profile.wage), 0);
-            const otTotalHrs = inc.reduce((a, b) => a + b.details.o, 0);
-            const otCash = inc.reduce((a, b) => a + (b.details.o * profile.ot), 0);
-            const extraTotal = inc.reduce((a, b) => a + b.details.e, 0);
+            const wageTotal = inc.reduce((a, b) => a + ((b.details?.h || 0)/8 * profile.wage), 0);
+            const otTotalHrs = inc.reduce((a, b) => a + (b.details?.o || 0), 0);
+            const otCash = inc.reduce((a, b) => a + ((b.details?.o || 0) * profile.ot), 0);
+            const extraTotal = inc.reduce((a, b) => a + (b.details?.e || 0), 0);
             const total = (wageTotal + otCash + extraTotal) - expTotal;
 
             document.getElementById('totalBal').innerText = total.toFixed(0) + '฿';
@@ -381,6 +439,34 @@
                 <div class="breakdown-item"><span>💵 Extra</span><span class="text-plus">+${extraTotal.toFixed(0)}฿</span></div>
                 <div class="breakdown-item"><span>📉 Expenses</span><span class="text-minus">-${expTotal.toFixed(0)}฿</span></div>
             `;
+            updateMonthlyInsight();
+        }
+
+        function updateMonthlyInsight() {
+            const now = new Date();
+            const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthRecords = records.filter(r => String(r.date || '').startsWith(monthKey));
+            const income = monthRecords.filter(r => r.type === 'income');
+            const expenses = monthRecords.filter(r => r.type === 'expense');
+            const incomeTotal = income.reduce((sum, r) => sum + Number(r.amt || 0), 0);
+            const expenseTotal = expenses.reduce((sum, r) => sum + Number(r.amt || 0), 0);
+            const net = incomeTotal - expenseTotal;
+            const savingsRate = incomeTotal > 0 ? Math.max(0, Math.min(100, (net / incomeTotal) * 100)) : 0;
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const recordedDays = new Set(income.map(r => r.date)).size;
+            const workProgress = Math.min(100, (recordedDays / daysInMonth) * 100);
+            const expenseRate = incomeTotal > 0 ? Math.min(100, (expenseTotal / incomeTotal) * 100) : 0;
+            const el = document.getElementById('monthlyInsight');
+            if (!el) return;
+            el.querySelector('.insight-grid').innerHTML = `
+                <div class="insight-stat"><span class="insight-label">ဒီလ ဝင်ငွေ</span><span class="insight-value text-plus">+${incomeTotal.toFixed(0)}฿</span></div>
+                <div class="insight-stat"><span class="insight-label">ဒီလ ထွက်ငွေ</span><span class="insight-value text-minus">-${expenseTotal.toFixed(0)}฿</span></div>
+                <div class="insight-stat"><span class="insight-label">စုငွေ နှုန်း</span><span class="insight-value">${savingsRate.toFixed(0)}%</span><div class="insight-progress"><span style="width:${savingsRate}%"></span></div></div>
+                <div class="insight-stat"><span class="insight-label">အလုပ်ရက် တိုးတက်မှု</span><span class="insight-value">${recordedDays}/${daysInMonth} ရက် (${workProgress.toFixed(0)}%)</span><div class="insight-progress"><span style="width:${workProgress}%"></span></div></div>
+            `;
+            el.querySelector('.insight-note').innerText = incomeTotal === 0
+                ? 'ဒီလဝင်ငွေမှတ်တမ်း မရှိသေးပါ။'
+                : `လက်ကျန် ${net.toFixed(0)}฿ ဖြစ်ပြီး ဝင်ငွေရဲ့ ${expenseRate.toFixed(0)}% ကို အသုံးပြုထားပါတယ်။ ${net >= 0 ? 'လက်ကျန်ကောင်းနေပါတယ်။' : 'ထွက်ငွေကို လျှော့ချဖို့ လိုအပ်ပါတယ်။'}`;
         }
 
         function renderList() {
@@ -443,7 +529,7 @@
             profile.wage = parseFloat(document.getElementById('pWage').value);
             profile.ot = parseFloat(document.getElementById('pOt').value);
             localStorage.setItem('f_prof', JSON.stringify(profile));
-            updateHeader(); syncToFirebase(); alert("Saved!");
+            updateHeader(); syncFromFirebase(); syncToFirebase(); alert("Saved!");
         }
 
         function updateHeader() {
@@ -468,7 +554,7 @@
             document.getElementById('pWage').value = profile.wage;
             document.getElementById('pOt').value = profile.ot;
             document.getElementById('topLang').value = profile.lang;
-            updateHeader(); setLang(profile.lang);
+            updateHeader(); setLang(profile.lang); syncFromFirebase();
         };
     </script>
     <script>
