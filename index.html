@@ -851,13 +851,39 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
         }
 
         async function askPollinations(command) {
-            const context = getSmartChatHistory().slice(-6).map(item => `${item.role === 'user' ? 'User' : 'AI'}: ${item.text}`).join('\n');
-            const prompt = `မြန်မာလို တိုတိုရှင်းရှင်း ယဉ်ကျေးစွာ ဖြေပါ။ DailyWage အက်ပ်အသုံးပြုသူ၏ အထွေထွေမေးခွန်းကို ဖြေပါ။ ယခင်စကားဝိုင်း: ${context}\nလက်ရှိမေးခွန်း: ${command}`;
-            const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`, { headers: { Accept: 'text/plain' } });
-            if (!response.ok) throw new Error(`Pollinations HTTP ${response.status}`);
-            const answer = (await response.text()).trim();
-            if (!answer) throw new Error('Empty AI response');
-            return answer;
+            const context = getSmartChatHistory().slice(-4).map(item => `${item.role === 'user' ? 'User' : 'AI'}: ${item.text}`).join('\n').slice(-1800);
+            const prompt = `မြန်မာလို တိုတိုရှင်းရှင်း ယဉ်ကျေးစွာ ဖြေပါ။ DailyWage အက်ပ်အသုံးပြုသူကို ကူညီပါ။ ယခင်စကားဝိုင်း: ${context}\nလက်ရှိမေးခွန်း: ${command}`;
+            const urls = [
+                `https://text.pollinations.ai/${encodeURIComponent(prompt)}`,
+                `https://text.pollinations.ai/${encodeURIComponent(command)}`
+            ];
+            let lastError = null;
+            for (const url of urls) {
+                for (let attempt = 0; attempt < 2; attempt += 1) {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 25000);
+                    try {
+                        const response = await fetch(url, { mode: 'cors', cache: 'no-store', headers: { Accept: 'text/plain' }, signal: controller.signal });
+                        const body = (await response.text()).trim();
+                        if (response.ok && body) return body;
+                        lastError = new Error(`Pollinations HTTP ${response.status}`);
+                    } catch (error) {
+                        lastError = error;
+                    } finally {
+                        clearTimeout(timeout);
+                    }
+                    if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 900));
+                }
+            }
+            throw lastError || new Error('AI service unavailable');
+        }
+
+        function localAssistantReply(command) {
+            const normalized = normalizeAssistantDigits(command).toLowerCase();
+            if (/ai.*(ဘယ်မှာ|ဘာမှာ|ဘယ်နေရာ|where)|ဘယ်မှာ.*ai|ဘာမှာ.*ai/.test(normalized)) return 'AI ကို အောက်ခြေ navigation ရဲ့ ✨ AI tab မှာ ဖွင့်ပြီး မေးနိုင်ပါတယ်။';
+            if (/မင်္ဂလာပါ|hello|hi|ဟယ်လို/.test(normalized)) return 'မင်္ဂလာပါ။ DailyWage စာရင်းသွင်းတာ၊ ဒီလလစာ/OT တွက်တာ၊ အထွေထွေမေးခွန်းတွေကို ကူညီပေးနိုင်ပါတယ်။';
+            if (/ဘာလုပ်နိုင်|ဘာတွေ.*ရ|လုပ်ဆောင်ချက်|capabilities/.test(normalized)) return 'တစ်နေ့စားစာရင်းထည့်ခြင်း၊ OT ထည့်ခြင်း၊ ဒီလဝင်ငွေ/ထွက်ငွေ/လက်ကျန်တွက်ခြင်းနဲ့ အထွေထွေမေးခွန်းဖြေခြင်းတွေ လုပ်ပေးနိုင်ပါတယ်။';
+            return '';
         }
 
         function appendSmartMessage(text, role = 'ai', persist = true) {
@@ -906,14 +932,14 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
                 } else if (/လစာ|စုစုပေါင်း|ပေါင်းပေး|ot ပေါင်း|ot တွက်|ဝင်ငွေ|ထွက်ငွေ|လက်ကျန်|balance|total/.test(normalized)) {
                     result = assistantAnswerForTotals(text);
                 } else {
-                    result = await askPollinations(text);
+                    result = localAssistantReply(text) || await askPollinations(text);
                 }
                 setSmartTyping(false);
                 appendSmartMessage(result, 'ai');
             } catch (error) {
                 console.warn('Smart Assistant fallback:', error);
                 setSmartTyping(false);
-                appendSmartMessage('AI ဝန်ဆောင်မှုကို ယခုချိတ်ဆက်မရသေးပါ။ စာရင်းသွင်းခြင်းနှင့် လစာ/OT တွက်ချက်ခြင်း command များကိုတော့ offline အဖြစ် ဆက်သုံးနိုင်ပါသည်။', 'ai');
+                appendSmartMessage('အွန်လိုင်း AI ဝန်ဆောင်မှုက ယခုခဏ rate limit/connection ကြောင့် မရသေးပါ။ “တစ်နေ့စားစာရင်းထည့်ပေး”, “ဒီလ စုစုပေါင်း”, “OT ပေါင်း” စတဲ့ DailyWage command တွေကိုတော့ offline အဖြစ် ဆက်ခိုင်းနိုင်ပါတယ်။ ခဏအကြာ ပြန်မေးကြည့်ပါ။', 'ai');
             }
         }
 
