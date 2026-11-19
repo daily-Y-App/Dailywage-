@@ -7,6 +7,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -342,6 +343,7 @@
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const firestore = firebase.firestore();
         const storage = firebase.storage();
 
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
@@ -350,6 +352,7 @@
         if (profileCodeFromUrl) profile.code = profileCodeFromUrl;
         let myChart = null;
         let firebaseListenerCode = null;
+        let deviceId = profile.deviceId || '';
 
         const langMap = {
             my: { income:"ဝင်ငွေ", expense:"ထွက်ငွေ", history:"မှတ်တမ်း", balance:"လက်ကျန်", graph:"ဂရပ်", profile:"ကိုယ်ရေး", date:"ရက်စွဲ", save:"သိမ်းမည်", totalBal:"စုစုပေါင်းလက်ကျန်ငွေ", work:"ရက်ပေါင်း", hours:"အလုပ်ချိန်", ot:"OT", clear:"စာရင်းဖျက်ရန်", amount:"ပမာဏ", cat:"အမျိုးအစား", extra:"အပိုဝင်ငွေ" },
@@ -384,6 +387,130 @@
             if(id === 'balance') updateBalance();
             if(id === 'history') renderList();
             if(id === 'graph') renderGraph();
+        }
+
+        function canvasFingerprint() {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 280;
+                canvas.height = 60;
+                const context = canvas.getContext('2d');
+                context.textBaseline = 'top';
+                context.font = '16px Arial';
+                context.fillStyle = '#2468f2';
+                context.fillRect(8, 8, 120, 22);
+                context.fillStyle = '#111827';
+                context.fillText('DailyWage device', 12, 12);
+                return canvas.toDataURL();
+            } catch (error) {
+                return 'canvas-unavailable';
+            }
+        }
+
+        async function hashDeviceSignals(value) {
+            const bytes = new TextEncoder().encode(value);
+            const digest = await crypto.subtle.digest('SHA-256', bytes);
+            return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function createDeviceId() {
+            const signals = {
+                screen: `${screen.width}x${screen.height}x${screen.colorDepth || ''}`,
+                cores: navigator.hardwareConcurrency || 'unknown',
+                userAgent: navigator.userAgent || '',
+                platform: navigator.platform || '',
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+                language: navigator.language || '',
+                languages: Array.isArray(navigator.languages) ? navigator.languages.join(',') : '',
+                touchPoints: navigator.maxTouchPoints || 0,
+                canvas: canvasFingerprint()
+            };
+            const raw = JSON.stringify(signals);
+            return `dev_${(await hashDeviceSignals(raw)).slice(0, 40)}`;
+        }
+
+        function updateProfileInputs() {
+            ['pName', 'pCode', 'pWage', 'pOt', 'pEmail'].forEach(id => {
+                const element = document.getElementById(id);
+                if (!element) return;
+                const key = id === 'pName' ? 'name' : id === 'pCode' ? 'code' : id === 'pWage' ? 'wage' : id === 'pOt' ? 'ot' : 'email';
+                element.value = profile[key] ?? '';
+            });
+        }
+
+        async function initializeDeviceIdentity() {
+            try {
+                deviceId = await createDeviceId();
+                profile.deviceId = deviceId;
+                const deviceSnapshot = await firestore.collection('devices').doc(deviceId).get();
+                if (deviceSnapshot.exists) {
+                    const device = deviceSnapshot.data() || {};
+                    if (device.profileCode && device.profileCode !== profile.code) {
+                        const oldUserSnapshot = await db.ref('users/' + device.profileCode).once('value');
+                        const oldUser = oldUserSnapshot.val();
+                        if (oldUser && oldUser.profile) {
+                            const typedName = profile.name && profile.name !== 'User' ? profile.name : '';
+                            profile = { ...profile, ...oldUser.profile, code: device.profileCode, deviceId };
+                            if (typedName) profile.name = typedName;
+                            if (oldUser.records) {
+                                const remoteRecords = Array.isArray(oldUser.records) ? oldUser.records : Object.values(oldUser.records);
+                                const mergedMap = new Map();
+                                [...records, ...remoteRecords].forEach(record => mergedMap.set(recordKey(record), record));
+                                records = Array.from(mergedMap.values());
+                                localStorage.setItem('f_recs', JSON.stringify(records));
+                            }
+                        }
+                    }
+                }
+                await firestore.collection('devices').doc(deviceId).set({
+                    deviceId,
+                    profileCode: profile.code,
+                    name: profile.name || 'User',
+                    lastSeen: new Date().toISOString()
+                }, { merge: true });
+                localStorage.setItem('f_prof', JSON.stringify(profile));
+                updateProfileInputs();
+                updateHeader();
+                syncFromFirebase();
+            } catch (error) {
+                console.warn('Device registry unavailable; continuing with local profile:', error);
+            }
+        }
+
+        async function claimDeviceIdentity() {
+            if (!deviceId) deviceId = await createDeviceId();
+            profile.deviceId = deviceId;
+            try {
+                const deviceRef = firestore.collection('devices').doc(deviceId);
+                const snapshot = await deviceRef.get();
+                const existing = snapshot.exists ? (snapshot.data() || {}) : {};
+                const typedName = profile.name;
+                if (existing.profileCode && existing.profileCode !== profile.code) {
+                    const oldUserSnapshot = await db.ref('users/' + existing.profileCode).once('value');
+                    const oldUser = oldUserSnapshot.val();
+                    if (oldUser && oldUser.profile) {
+                        profile = { ...profile, ...oldUser.profile, code: existing.profileCode, deviceId };
+                        if (typedName && typedName !== 'User') profile.name = typedName;
+                        if (oldUser.records) {
+                            const remoteRecords = Array.isArray(oldUser.records) ? oldUser.records : Object.values(oldUser.records);
+                            const mergedMap = new Map();
+                            [...records, ...remoteRecords].forEach(record => mergedMap.set(recordKey(record), record));
+                            records = Array.from(mergedMap.values());
+                        }
+                    }
+                }
+                await deviceRef.set({
+                    deviceId,
+                    profileCode: profile.code,
+                    name: profile.name || 'User',
+                    lastSeen: new Date().toISOString()
+                }, { merge: true });
+            } catch (error) {
+                console.warn('Device registry save failed:', error);
+            }
+            localStorage.setItem('f_prof', JSON.stringify(profile));
+            localStorage.setItem('f_recs', JSON.stringify(records));
+            updateProfileInputs();
         }
 
         function syncToFirebase() {
@@ -673,7 +800,7 @@
         function checkCustom(v) { document.getElementById('customCat').style.display = v==='custom'?'block':'none'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        function saveProfile() {
+        async function saveProfile() {
             profile.name = document.getElementById('pName').value;
             profile.code = document.getElementById('pCode').value;
             profile.email = document.getElementById('pEmail').value.trim();
@@ -681,6 +808,7 @@
             profile.ot = parseFloat(document.getElementById('pOt').value);
             profile.avatar = profile.avatar || profile.av || '👷';
             profile.avatarMode = profile.avatarMode || 'emoji';
+            await claimDeviceIdentity();
             localStorage.setItem('f_prof', JSON.stringify(profile));
             updateHeader(); syncFromFirebase(); syncToFirebase(); alert("Saved!");
         }
@@ -713,7 +841,7 @@
             document.getElementById('pOt').value = profile.ot;
             document.getElementById('pEmail').value = profile.email || '';
             document.getElementById('topLang').value = profile.lang;
-            updateHeader(); setLang(profile.lang); syncFromFirebase();
+            updateHeader(); setLang(profile.lang); syncFromFirebase(); initializeDeviceIdentity();
         };
     </script>
     <script>
