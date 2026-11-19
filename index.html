@@ -87,7 +87,7 @@
         .nav-text { font-size: 10px; font-weight: 600; }
 
         /* --- Layout --- */
-        .content { padding: 20px; }
+        .content { padding: 20px; touch-action: pan-y; }
         .page { display: none; animation: slideUp 0.4s ease-out; }
         .page.active { display: block; }
 
@@ -237,20 +237,6 @@
                 <div class="form-group"><label>💵 <span class="t-extra">အပိုဝင်ငွေ</span></label><input type="number" id="iExtra" value="0"></div>
                 <button class="btn-save" onclick="saveData('income')">💾 <span class="t-save">သိမ်းဆည်းမည်</span></button>
             </div>
-            <div class="smart-assistant">
-                <h4>✨ Smart AI Assistant</h4>
-                <p class="smart-assistant-help">ဒီနေ့ 400၊ စာရင်းသွင်း 350 OT 2၊ လစာပေါင်းပေး၊ OT ပေါင်း လို့ ရိုက်နိုင်ပါတယ်။</p>
-                <div class="smart-quick-actions">
-                    <button onclick="runQuickAssistant('ဒီနေ့ စာရင်းသွင်း')">ဒီနေ့ စာရင်းသွင်း</button>
-                    <button onclick="runQuickAssistant('ဒီလ စုစုပေါင်း')">လစာပေါင်းပေး</button>
-                    <button onclick="runQuickAssistant('ဒီလ OT ပေါင်း')">OT တွက်ပေး</button>
-                </div>
-                <div class="smart-input-row">
-                    <input id="smartCommand" type="text" placeholder="ဥပမာ - ဒီနေ့ 400 OT 2" onkeydown="if(event.key==='Enter') runAssistantCommand()">
-                    <button onclick="runAssistantCommand()">မေးမည်</button>
-                </div>
-                <div id="smartAnswer" class="smart-answer"></div>
-            </div>
         </div>
 
         <div id="expense" class="page">
@@ -303,6 +289,23 @@
             </div>
         </div>
 
+        <div id="smart" class="page">
+            <div class="smart-assistant">
+                <h4>✨ Smart AI Assistant</h4>
+                <p class="smart-assistant-help">ဒီနေ့ 400၊ စာရင်းသွင်း 350 OT 2၊ လစာပေါင်းပေး၊ OT ပေါင်း လို့ ရိုက်နိုင်ပါတယ်။</p>
+                <div class="smart-quick-actions">
+                    <button onclick="runQuickAssistant('ဒီနေ့ စာရင်းသွင်း')">ဒီနေ့ စာရင်းသွင်း</button>
+                    <button onclick="runQuickAssistant('ဒီလ စုစုပေါင်း')">လစာပေါင်းပေး</button>
+                    <button onclick="runQuickAssistant('ဒီလ OT ပေါင်း')">OT တွက်ပေး</button>
+                </div>
+                <div class="smart-input-row">
+                    <input id="smartCommand" type="text" placeholder="ဥပမာ - ဒီနေ့ 400 OT 2" onkeydown="if(event.key==='Enter') runAssistantCommand()">
+                    <button onclick="runAssistantCommand()">မေးမည်</button>
+                </div>
+                <div id="smartAnswer" class="smart-answer"></div>
+            </div>
+        </div>
+
         <div id="profile" class="page">
             <div class="card">
                 <h3 style="margin-bottom:15px;" class="t-profile">ကိုယ်ရေးအချက်အလက်</h3>
@@ -340,6 +343,7 @@
         <div class="nav-item" onclick="showPage('history')"><span class="nav-icon">📜</span><span class="nav-text t-history">မှတ်တမ်း</span></div>
         <div class="nav-item" onclick="showPage('balance')"><span class="nav-icon">🧮</span><span class="nav-text t-balance">လက်ကျန်</span></div>
         <div class="nav-item" onclick="showPage('graph')"><span class="nav-icon">📊</span><span class="nav-text t-graph">ဂရပ်</span></div>
+        <div class="nav-item" onclick="showPage('smart')"><span class="nav-icon">✨</span><span class="nav-text">AI</span></div>
     </div>
 
     <div id="successModal" class="modal"><div class="modal-content"><h2>✅ Success!</h2><button class="btn-save" style="margin-top:20px;" onclick="closeModal('successModal')">OK</button></div></div>
@@ -398,18 +402,48 @@
             });
         }
 
+        const navigationPages = ['income', 'expense', 'history', 'balance', 'graph', 'smart'];
+
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             
             // Activate correct nav item
-            const idx = ['income', 'expense', 'history', 'balance', 'graph'].indexOf(id);
+            const idx = navigationPages.indexOf(id);
             if(idx !== -1) document.querySelectorAll('.nav-item')[idx].classList.add('active');
 
             if(id === 'balance') updateBalance();
             if(id === 'history') renderList();
             if(id === 'graph') renderGraph();
+        }
+
+        function setupSwipeNavigation() {
+            const content = document.querySelector('.content');
+            if (!content) return;
+            let startX = 0;
+            let startY = 0;
+            content.addEventListener('touchstart', event => {
+                if (event.target.closest('input, textarea, select, button')) return;
+                const touch = event.changedTouches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+            }, { passive: true });
+            content.addEventListener('touchend', event => {
+                if (!startX || event.target.closest('input, textarea, select, button')) return;
+                const touch = event.changedTouches[0];
+                const deltaX = touch.clientX - startX;
+                const deltaY = touch.clientY - startY;
+                startX = 0;
+                if (Math.abs(deltaX) < 55 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+                const active = document.querySelector('.page.active');
+                const currentIndex = navigationPages.indexOf(active?.id || 'income');
+                if (currentIndex < 0) return;
+                const nextIndex = deltaX < 0
+                    ? Math.min(navigationPages.length - 1, currentIndex + 1)
+                    : Math.max(0, currentIndex - 1);
+                if (nextIndex !== currentIndex) showPage(navigationPages[nextIndex]);
+            }, { passive: true });
         }
 
         function canvasFingerprint() {
@@ -1040,7 +1074,7 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             document.getElementById('pOt').value = profile.ot;
             document.getElementById('pEmail').value = profile.email || '';
             document.getElementById('topLang').value = profile.lang;
-            updateHeader(); setLang(profile.lang); syncFromFirebase(); initializeDeviceIdentity();
+            updateHeader(); setLang(profile.lang); syncFromFirebase(); initializeDeviceIdentity(); setupSwipeNavigation();
         };
     </script>
     <script>
