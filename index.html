@@ -175,6 +175,19 @@
         .smart-input-row input { min-width: 0; flex: 1; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; font-size: 14px; }
         .smart-input-row button { border: 0; border-radius: 10px; padding: 0 13px; background: var(--primary); color: #fff; font-weight: 800; cursor: pointer; }
         .smart-answer { min-height: 18px; margin-top: 10px; color: #334155; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
+        .smart-chat-shell { padding: 0; overflow: hidden; background: #f8fafc; }
+        .smart-chat-header { padding: 16px; color: #fff; background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .smart-chat-header h4 { margin: 0 0 4px; color: #fff; font-size: 18px; }
+        .smart-chat-header small { opacity: .86; font-size: 11px; }
+        .smart-chat-messages { min-height: 260px; max-height: 46vh; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 9px; background: linear-gradient(180deg, #f8fafc, #eef2ff); }
+        .smart-message { max-width: 86%; padding: 10px 12px; border-radius: 15px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; box-shadow: 0 2px 8px rgba(15,23,42,.06); }
+        .smart-message.ai { align-self: flex-start; color: #1e293b; background: #fff; border-bottom-left-radius: 4px; }
+        .smart-message.user { align-self: flex-end; color: #fff; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-bottom-right-radius: 4px; }
+        .smart-message.typing { color: #64748b; background: #e2e8f0; font-style: italic; }
+        .smart-chat-composer { padding: 12px; background: #fff; border-top: 1px solid #e2e8f0; }
+        .smart-chat-composer .smart-quick-actions { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 3px; }
+        .smart-chat-composer .smart-quick-actions button { white-space: nowrap; }
+        .smart-chat-composer .smart-input-row input { padding: 12px; }
         .profile-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
         .avatar-uploader { text-align: center; padding: 14px; margin-bottom: 16px; border: 1px dashed #cbd5e1; border-radius: 16px; background: #f8fafc; }
         .avatar-preview { width: 86px; height: 86px; margin: 0 auto 10px; border-radius: 24px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #e2e8f0; color: var(--primary); font-size: 38px; border: 3px solid #dbeafe; }
@@ -290,19 +303,26 @@
         </div>
 
         <div id="smart" class="page">
-            <div class="smart-assistant">
-                <h4>✨ Smart AI Assistant</h4>
-                <p class="smart-assistant-help">ဒီနေ့ 400၊ စာရင်းသွင်း 350 OT 2၊ လစာပေါင်းပေး၊ OT ပေါင်း လို့ ရိုက်နိုင်ပါတယ်။</p>
-                <div class="smart-quick-actions">
-                    <button onclick="runQuickAssistant('ဒီနေ့ စာရင်းသွင်း')">ဒီနေ့ စာရင်းသွင်း</button>
-                    <button onclick="runQuickAssistant('ဒီလ စုစုပေါင်း')">လစာပေါင်းပေး</button>
-                    <button onclick="runQuickAssistant('ဒီလ OT ပေါင်း')">OT တွက်ပေး</button>
+            <div class="smart-assistant smart-chat-shell">
+                <div class="smart-chat-header">
+                    <h4>✨ DailyWage AI</h4>
+                    <small>စာရင်းသွင်း၊ လစာ/OT တွက်ချက်၊ အထွေထွေမေးခွန်း မေးနိုင်ပါတယ်</small>
                 </div>
-                <div class="smart-input-row">
-                    <input id="smartCommand" type="text" placeholder="ဥပမာ - ဒီနေ့ 400 OT 2" onkeydown="if(event.key==='Enter') runAssistantCommand()">
-                    <button onclick="runAssistantCommand()">မေးမည်</button>
+                <div id="smartMessages" class="smart-chat-messages" aria-live="polite">
+                    <div class="smart-message ai">မင်္ဂလာပါ။ ဒီနေ့ 400၊ လစာပေါင်းပေး၊ OT ပေါင်း လို့ ရိုက်ပြီး စတင်နိုင်ပါတယ်။</div>
                 </div>
-                <div id="smartAnswer" class="smart-answer"></div>
+                <div class="smart-chat-composer">
+                    <div class="smart-quick-actions">
+                        <button onclick="runQuickAssistant('ဒီနေ့ စာရင်းသွင်း')">ဒီနေ့ စာရင်းသွင်း</button>
+                        <button onclick="runQuickAssistant('ဒီလ စုစုပေါင်း')">လစာပေါင်းပေး</button>
+                        <button onclick="runQuickAssistant('ဒီလ OT ပေါင်း')">OT တွက်ပေး</button>
+                    </div>
+                    <div class="smart-input-row">
+                        <input id="smartCommand" type="text" placeholder="မေးလိုတာ ရိုက်ပါ..." onkeydown="if(event.key==='Enter') runAssistantCommand()">
+                        <button onclick="runAssistantCommand()">ပို့မည်</button>
+                    </div>
+                    <div id="smartAnswer" class="smart-answer" aria-live="polite"></div>
+                </div>
             </div>
         </div>
 
@@ -786,29 +806,59 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             return answer;
         }
 
+        function appendSmartMessage(text, role = 'ai') {
+            const messages = document.getElementById('smartMessages');
+            if (!messages) return;
+            const bubble = document.createElement('div');
+            bubble.className = `smart-message ${role}`;
+            bubble.innerText = String(text || '');
+            messages.appendChild(bubble);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function setSmartTyping(show) {
+            const messages = document.getElementById('smartMessages');
+            if (!messages) return;
+            const oldTyping = messages.querySelector('.smart-message.typing');
+            if (oldTyping) oldTyping.remove();
+            if (show) {
+                const typing = document.createElement('div');
+                typing.className = 'smart-message ai typing';
+                typing.innerText = 'AI စဉ်းစားနေပါသည်...';
+                messages.appendChild(typing);
+                messages.scrollTop = messages.scrollHeight;
+            }
+        }
+
         async function runAssistantCommand(command) {
             const input = document.getElementById('smartCommand');
             const answer = document.getElementById('smartAnswer');
             const text = String(command || input?.value || '').trim();
             if (!text) return;
             if (input) input.value = text;
-            answer.innerText = 'စဉ်းစားနေပါသည်...';
+            appendSmartMessage(text, 'user');
+            setSmartTyping(true);
+            if (answer) answer.innerText = '';
             const normalized = normalizeAssistantDigits(text).toLowerCase();
             const hasNumber = /\d/.test(normalized);
             const entryIntent = /ဒီနေ့|စာရင်းသွင်း|မှတ်တမ်း|နေ့စားခ|ဝင်ငွေ|ot\s*\d|အိုတီ\s*\d|အချိန်ပို\s*\d/.test(normalized);
             try {
+                let result = '';
                 if (hasNumber && entryIntent) {
-                    answer.innerText = assistantAddIncome(text);
+                    result = assistantAddIncome(text);
                 } else if (entryIntent) {
-                    answer.innerText = assistantAddIncome(text);
+                    result = assistantAddIncome(text);
                 } else if (/လစာ|စုစုပေါင်း|ပေါင်းပေး|ot ပေါင်း|ot တွက်|ဝင်ငွေ|ထွက်ငွေ|လက်ကျန်|balance|total/.test(normalized)) {
-                    answer.innerText = assistantAnswerForTotals(text);
+                    result = assistantAnswerForTotals(text);
                 } else {
-                    answer.innerText = await askPollinations(text);
+                    result = await askPollinations(text);
                 }
+                setSmartTyping(false);
+                appendSmartMessage(result, 'ai');
             } catch (error) {
                 console.warn('Smart Assistant fallback:', error);
-                answer.innerText = 'AI ဝန်ဆောင်မှုကို ယခုချိတ်ဆက်မရသေးပါ။ စာရင်းသွင်းခြင်းနှင့် လစာ/OT တွက်ချက်ခြင်း command များကိုတော့ offline အဖြစ် ဆက်သုံးနိုင်ပါသည်။';
+                setSmartTyping(false);
+                appendSmartMessage('AI ဝန်ဆောင်မှုကို ယခုချိတ်ဆက်မရသေးပါ။ စာရင်းသွင်းခြင်းနှင့် လစာ/OT တွက်ချက်ခြင်း command များကိုတော့ offline အဖြစ် ဆက်သုံးနိုင်ပါသည်။', 'ai');
             }
         }
 
