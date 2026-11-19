@@ -661,7 +661,7 @@
         }
 
         function syncToFirebase() {
-            db.ref('users/' + profile.code).set({ profile, records, lastUpdate: new Date().toISOString() });
+            db.ref('users/' + profile.code).update({ profile, records, lastUpdate: new Date().toISOString() });
         }
 
         function recordKey(record) {
@@ -689,6 +689,17 @@
                         if (document.getElementById('balance')?.classList.contains('active')) updateBalance();
                         syncToFirebase();
                     }
+                }
+                if (data.aiChatHistory) {
+                    const remoteChat = Array.isArray(data.aiChatHistory) ? data.aiChatHistory : Object.values(data.aiChatHistory);
+                    const mergedChat = new Map();
+                    [...getSmartChatHistory(), ...remoteChat].forEach(item => {
+                        if (!item || !item.text || !item.role) return;
+                        const key = `${item.role}|${item.time || ''}|${item.text}`;
+                        mergedChat.set(key, item);
+                    });
+                    saveSmartChatHistory(Array.from(mergedChat.values()).slice(-80), false);
+                    if (document.getElementById('smart')?.classList.contains('active')) renderSmartChatHistory();
                 }
                 if (data.profile && data.profile.code === profile.code) {
                     profile = { ...profile, ...data.profile };
@@ -813,8 +824,12 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             }
         }
 
-        function saveSmartChatHistory(history) {
-            try { localStorage.setItem(SMART_CHAT_KEY, JSON.stringify(history.slice(-80))); } catch (error) { console.warn('AI chat history unavailable:', error); }
+        function saveSmartChatHistory(history, syncRemote = true) {
+            const limitedHistory = history.slice(-80);
+            try { localStorage.setItem(SMART_CHAT_KEY, JSON.stringify(limitedHistory)); } catch (error) { console.warn('AI chat history unavailable:', error); }
+            if (syncRemote && profile.code) {
+                db.ref('users/' + profile.code).update({ aiChatHistory: limitedHistory, lastUpdate: new Date().toISOString() }).catch(error => console.warn('AI chat Firebase sync failed:', error));
+            }
         }
 
         function renderSmartChatHistory() {
@@ -831,6 +846,7 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
 
         function clearSmartChat() {
             try { localStorage.removeItem(SMART_CHAT_KEY); } catch (error) {}
+            if (profile.code) db.ref('users/' + profile.code).update({ aiChatHistory: [], lastUpdate: new Date().toISOString() }).catch(error => console.warn('AI chat clear sync failed:', error));
             renderSmartChatHistory();
         }
 
