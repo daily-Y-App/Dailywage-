@@ -429,6 +429,73 @@
             return `dev_${(await hashDeviceSignals(raw)).slice(0, 40)}`;
         }
 
+        function readDeviceCookie() {
+            const match = document.cookie.split('; ').find(row => row.startsWith('dailywage_device_id='));
+            return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : '';
+        }
+
+        function writeDeviceCookie(id) {
+            const secure = location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = `dailywage_device_id=${encodeURIComponent(id)}; Max-Age=31536000; Path=/; SameSite=Lax${secure}`;
+        }
+
+        function readIndexedDeviceId() {
+            return new Promise(resolve => {
+                if (!window.indexedDB) return resolve('');
+                const request = indexedDB.open('dailywage-device-store', 1);
+                request.onupgradeneeded = event => {
+                    if (!event.target.result.objectStoreNames.contains('identities')) event.target.result.createObjectStore('identities');
+                };
+                request.onerror = () => resolve('');
+                request.onsuccess = event => {
+                    const database = event.target.result;
+                    const transaction = database.transaction('identities', 'readonly');
+                    const read = transaction.objectStore('identities').get('deviceId');
+                    read.onsuccess = () => { database.close(); resolve(read.result || ''); };
+                    read.onerror = () => { database.close(); resolve(''); };
+                };
+            });
+        }
+
+        function writeIndexedDeviceId(id) {
+            return new Promise(resolve => {
+                if (!window.indexedDB) return resolve();
+                const request = indexedDB.open('dailywage-device-store', 1);
+                request.onupgradeneeded = event => {
+                    if (!event.target.result.objectStoreNames.contains('identities')) event.target.result.createObjectStore('identities');
+                };
+                request.onerror = () => resolve();
+                request.onsuccess = event => {
+                    const database = event.target.result;
+                    const transaction = database.transaction('identities', 'readwrite');
+                    transaction.objectStore('identities').put(id, 'deviceId');
+                    transaction.oncomplete = () => { database.close(); resolve(); };
+                    transaction.onerror = () => { database.close(); resolve(); };
+                };
+            });
+        }
+
+        async function persistDeviceId(id) {
+            try { localStorage.setItem('dailywage_device_id', id); } catch (error) { console.warn('localStorage device ID unavailable:', error); }
+            try { writeDeviceCookie(id); } catch (error) { console.warn('Cookie device ID unavailable:', error); }
+            await writeIndexedDeviceId(id);
+            try {
+                if (navigator.storage && navigator.storage.persist) await navigator.storage.persist();
+            } catch (error) {
+                console.warn('Persistent storage request unavailable:', error);
+            }
+        }
+
+        async function getPersistentDeviceId() {
+            let localId = '';
+            try { localId = localStorage.getItem('dailywage_device_id') || ''; } catch (error) {}
+            const candidates = [profile.deviceId, localId, readDeviceCookie(), await readIndexedDeviceId()];
+            const storedId = candidates.find(id => typeof id === 'string' && id.startsWith('dev_'));
+            const id = storedId || await createDeviceId();
+            await persistDeviceId(id);
+            return id;
+        }
+
         function updateProfileInputs() {
             ['pName', 'pCode', 'pWage', 'pOt', 'pEmail'].forEach(id => {
                 const element = document.getElementById(id);
@@ -440,7 +507,7 @@
 
         async function initializeDeviceIdentity() {
             try {
-                deviceId = await createDeviceId();
+                deviceId = await getPersistentDeviceId();
                 profile.deviceId = deviceId;
                 const deviceSnapshot = await firestore.collection('devices').doc(deviceId).get();
                 if (deviceSnapshot.exists) {
@@ -478,7 +545,7 @@
         }
 
         async function claimDeviceIdentity() {
-            if (!deviceId) deviceId = await createDeviceId();
+            if (!deviceId) deviceId = await getPersistentDeviceId();
             profile.deviceId = deviceId;
             try {
                 const deviceRef = firestore.collection('devices').doc(deviceId);
