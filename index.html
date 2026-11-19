@@ -445,7 +445,7 @@
                 const deviceSnapshot = await firestore.collection('devices').doc(deviceId).get();
                 if (deviceSnapshot.exists) {
                     const device = deviceSnapshot.data() || {};
-                    if (device.profileCode && device.profileCode !== profile.code) {
+                    if (device.profileCode) {
                         const oldUserSnapshot = await db.ref('users/' + device.profileCode).once('value');
                         const oldUser = oldUserSnapshot.val();
                         if (oldUser && oldUser.profile) {
@@ -485,7 +485,7 @@
                 const snapshot = await deviceRef.get();
                 const existing = snapshot.exists ? (snapshot.data() || {}) : {};
                 const typedName = profile.name;
-                if (existing.profileCode && existing.profileCode !== profile.code) {
+                if (existing.profileCode) {
                     const oldUserSnapshot = await db.ref('users/' + existing.profileCode).once('value');
                     const oldUser = oldUserSnapshot.val();
                     if (oldUser && oldUser.profile) {
