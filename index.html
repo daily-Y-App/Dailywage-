@@ -813,6 +813,15 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             return `Profile ထဲက တစ်နေ့လုပ်အားခ ${assistantMoney(baseAmount)} ကို အသုံးပြုပြီး ဒီနေ့ ${assistantMoney(amount)} စာရင်းသွင်းပြီးပါပြီ။${otHours ? ` OT ${otHours} နာရီ (${assistantMoney(otPay)}) ပါဝင်ပါတယ်။` : ''}`;
         }
 
+        function assistantTodayStatus() {
+            const date = new Date().toISOString().slice(0, 10);
+            const todayIncome = records.find(record => record.date === date && record.type === 'income');
+            if (!todayIncome) return 'ဒီနေ့အတွက် ဝင်ငွေ/နေ့စားစာရင်း မမှတ်ထားရသေးပါ။ လိုရင် “တစ်နေ့စားစာရင်းထည့်ပေး” လို့ ခိုင်းနိုင်ပါတယ်။';
+            const details = todayIncome.details || {};
+            const otHours = Number(details.o || 0);
+            return `ဒီနေ့စာရင်း မှတ်ထားပြီးပါပြီ။\nပမာဏ = ${assistantMoney(Number(todayIncome.amt || 0))}\nအလုပ်ချိန် = ${Number(details.h || 0).toFixed(1)} နာရီ${otHours ? `\nOT = ${otHours} နာရီ` : ''}${todayIncome.time ? `\nအချိန် = ${todayIncome.time}` : ''}`;
+        }
+
         const SMART_CHAT_KEY = 'dailywage_ai_chat_history';
 
         function getSmartChatHistory() {
@@ -923,9 +932,12 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             const normalized = normalizeAssistantDigits(text).toLowerCase();
             const hasNumber = /\d/.test(normalized);
             const entryIntent = /ဒီနေ့|တစ်နေ့စား|စာရင်းသွင်း|စရင်း|မှတ်တမ်း|နေ့စား|နေ့စားခ|ဝင်ငွေ|အလုပ်လုပ်|ထည့်ပေး|ထည့်ပေး|ot\s*\d|အိုတီ\s*\d|အချိန်ပို\s*\d/.test(normalized);
+            const todayStatusIntent = /ဒီနေ့|ယနေ့|today/.test(normalized) && /မှတ်ထား|မှတ်ပြီး|မှတ်မိ|ထည့်ပြီး|ထည့်ပြီး|စာရင်းရှိ|ရှိသေးလား|မေ့|လုပ်ပြီး/.test(normalized);
             try {
                 let result = '';
-                if (hasNumber && entryIntent) {
+                if (todayStatusIntent) {
+                    result = assistantTodayStatus();
+                } else if (hasNumber && entryIntent) {
                     result = assistantAddIncome(text);
                 } else if (entryIntent) {
                     result = assistantAddIncome(text);
