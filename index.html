@@ -930,18 +930,19 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             setSmartTyping(true);
             if (answer) answer.innerText = '';
             const normalized = normalizeAssistantDigits(text).toLowerCase();
-            const hasNumber = /\d/.test(normalized);
-            const entryIntent = /ဒီနေ့|တစ်နေ့စား|စာရင်းသွင်း|စရင်း|မှတ်တမ်း|နေ့စား|နေ့စားခ|ဝင်ငွေ|အလုပ်လုပ်|ထည့်ပေး|ထည့်ပေး|ot\s*\d|အိုတီ\s*\d|အချိန်ပို\s*\d/.test(normalized);
             const todayStatusIntent = /ဒီနေ့|ယနေ့|today/.test(normalized) && /မှတ်ထား|မှတ်ပြီး|မှတ်မိ|ထည့်ပြီး|ထည့်ပြီး|စာရင်းရှိ|ရှိသေးလား|မေ့|လုပ်ပြီး/.test(normalized);
+            const generalQuestionIntent = /အကြံ|အကြံပေး|ဘယ်လို.*(?:လုပ်|ရ|သုံး)|သင့်လဲ|သင့်လဲ|ကောင်းမလဲ|ရအောင်|ဘာလဲ|ဘာဖြစ်/.test(normalized);
+            const wageAddIntent = /(?:ဒီနေ့|ယနေ့)\s*(?:\d+(?:\.\d+)?|စာရင်း|စရင်း|ဝင်ငွေ|အလုပ်လုပ်)|(?:စာရင်း|စရင်း).*(?:သွင်း|ထည့်|ထည့်)|(?:တစ်နေ့စား|နေ့စားခ?).*(?:သွင်း|ထည့်|ထည့်)|(?:ot|အိုတီ|အချိန်ပို)\s*\d/.test(normalized);
+            const wageTotalsIntent = /(?:လစာ|ဒီလ)\s*(?:ပေါင်း|တွက်|စု|စာရင်း|ဝင်ငွေ|ထွက်ငွေ)|(?:စုစုပေါင်း|ပေါင်းပေး|လက်ကျန်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:ပေါင်း|တွက်)|(?:ဝင်ငွေ|ထွက်ငွေ).*(?:ဘယ်လောက်|ရှိ|စု|ပေါင်း|တွက်)|\b(?:balance|total)\b/.test(normalized);
             try {
                 let result = '';
                 if (todayStatusIntent) {
                     result = assistantTodayStatus();
-                } else if (hasNumber && entryIntent) {
+                } else if (generalQuestionIntent) {
+                    result = localAssistantReply(text) || await askPollinations(text);
+                } else if (wageAddIntent) {
                     result = assistantAddIncome(text);
-                } else if (entryIntent) {
-                    result = assistantAddIncome(text);
-                } else if (/လစာ|စုစုပေါင်း|ပေါင်းပေး|ot ပေါင်း|ot တွက်|ဝင်ငွေ|ထွက်ငွေ|လက်ကျန်|balance|total/.test(normalized)) {
+                } else if (wageTotalsIntent) {
                     result = assistantAnswerForTotals(text);
                 } else {
                     result = localAssistantReply(text) || await askPollinations(text);
