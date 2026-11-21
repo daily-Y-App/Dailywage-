@@ -772,8 +772,11 @@
                 await firestore.runTransaction(async transaction => {
                     const attrSnapshot = await transaction.get(attrRef);
                     const deviceSnapshot = await transaction.get(deviceRef);
+                    const existingAttribution = attrSnapshot.exists ? (attrSnapshot.data() || {}) : {};
+                    const existingDevice = deviceSnapshot.exists ? (deviceSnapshot.data() || {}) : {};
+                    if (existingAttribution.referredDeviceId && existingAttribution.referredDeviceId !== deviceId) throw new Error('PROFILE_ALREADY_ATTRIBUTED');
+                    if (existingDevice.referredProfileCode && existingDevice.referredProfileCode !== profile.code) throw new Error('DEVICE_ALREADY_REFERRED');
                     if (attrSnapshot.exists) return;
-                    if (deviceSnapshot.exists && deviceSnapshot.data()?.referredProfileCode !== profile.code) throw new Error('DEVICE_ALREADY_REFERRED');
                     transaction.set(attrRef, { referrerCode: referralCodeFromUrl, referredCode: profile.code, referredDeviceId: deviceId, status: 'attributed', createdAt: new Date().toISOString() });
                     transaction.set(deviceRef, { deviceId, referredProfileCode: profile.code, referrerCode: referralCodeFromUrl, createdAt: new Date().toISOString() }, { merge: true });
                 });
@@ -781,7 +784,7 @@
                 if (status) status.innerText = `ဖိတ်ခေါ်သူ CODE ${referralCodeFromUrl} ကို မှတ်တမ်းတင်ပြီးပါပြီ။ စာရင်းအသုံးပြုပြီး ဆုတောင်းခံနိုင်ပါတယ်။`;
             } catch (error) {
                 console.warn('Referral attribution failed:', error);
-                if (status) status.innerText = error.message === 'DEVICE_ALREADY_REFERRED' ? 'ဒီ device မှာ referral အသုံးပြုပြီးသားဖြစ်ပါတယ်။' : 'Referral မှတ်တမ်းတင်မရသေးပါ။ နောက်မှ ပြန်ကြိုးစားပါ။';
+                if (status) status.innerText = error.message === 'DEVICE_ALREADY_REFERRED' ? 'ဒီ device မှာ အခြား Referral Code အသုံးပြုပြီးသားဖြစ်ပါတယ်။ ထပ်မံ referral ဝင်၍ မရပါ။' : error.message === 'PROFILE_ALREADY_ATTRIBUTED' ? 'ဒီ Profile ကို အခြား device/referral မှတ်တမ်းနဲ့ ချိတ်ပြီးသားဖြစ်ပါတယ်။' : 'Referral မှတ်တမ်းတင်မရသေးပါ။ နောက်မှ ပြန်ကြိုးစားပါ။';
             }
         }
 
