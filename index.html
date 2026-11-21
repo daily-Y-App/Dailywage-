@@ -199,6 +199,8 @@
         .referral-share-button { width: 100%; margin-top: 12px; padding: 14px; border: 0; border-radius: 12px; background: #fbbf24; color: #422006; font-weight: 800; cursor: pointer; }
         .referral-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
         .referral-stat { padding: 11px; border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; }
+        .referral-balance-clickable { cursor: pointer; transition: transform .2s, box-shadow .2s; }
+        .referral-balance-clickable:active { transform: scale(.98); box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
         .referral-stat small { display: block; color: #166534; font-size: 11px; margin-bottom: 4px; }
         .referral-stat strong { color: #14532d; font-size: 19px; }
         .referral-status { margin-top: 12px; padding: 11px; border-radius: 11px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 12px; line-height: 1.5; }
@@ -833,7 +835,7 @@
                 const balance = balanceSnapshot.exists ? balanceSnapshot.data() : { availableBalance: 0 };
                 const stats = document.getElementById('referralStats');
                 const activity = referralActivitySnapshot();
-                if (stats) stats.innerHTML = `<div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>${activity.recordCount}</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>${data?.activity?.appOpenCount || '—'}</strong></div><div class="referral-stat"><small>ဆုငွေလက်ကျန်</small><strong>${Number(balance.availableBalance || 0)}฿</strong></div><div class="referral-stat"><small>Claim Status</small><strong>${data?.status || 'မတင်ရသေး'}</strong></div>`;
+                if (stats) stats.innerHTML = `<div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>${activity.recordCount}</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>${data?.activity?.appOpenCount || '—'}</strong></div><div id="referralBalanceStat" class="referral-stat referral-balance-clickable" role="button" tabindex="0" onclick="openReferralWithdrawal()" onkeydown="if(event.key==='Enter' || event.key===' ') openReferralWithdrawal()"><small>ဆုငွေလက်ကျန် (နှိပ်၍ထုတ်ရန်)</small><strong>${Number(balance.availableBalance || 0)}฿</strong></div><div class="referral-stat"><small>Claim Status</small><strong>${data?.status || 'မတင်ရသေး'}</strong></div>`;
                 const emailInput = document.getElementById('referralWithdrawEmail'); if (emailInput && !emailInput.value) emailInput.value = profile.email || '';
                 if (status && !status.innerText.includes('မှတ်တမ်းတင်ပြီး')) status.innerText = data ? `Claim status: ${data.status}။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။` : (referralAttribution ? `ဖိတ်ခေါ်သူ ${referralAttribution.referrerCode} မှတ်တမ်းတင်ထားပါတယ်။` : 'Referral link ဖြင့် ဝင်လာပြီးမှ ဆုတောင်းခံနိုင်ပါတယ်။');
                 const link = document.getElementById('referralLink'); if (link) link.value = referralLink();
@@ -857,6 +859,16 @@
                 alert('ဆုငွေထုတ်ယူရန် တောင်းခံလွှာ တင်ပြီးပါပြီ။ Admin စိစစ်ပြီး လက်ကျန်ထဲမှ နုတ်ယူပေးပါမယ်။');
                 loadReferralClaimStatus();
             } catch (error) { alert(error.message === 'INSUFFICIENT_BALANCE' ? 'ဆုငွေလက်ကျန် မလုံလောက်သေးပါ။' : 'ထုတ်ယူရန် တောင်းခံမရသေးပါ။ နောက်မှ ပြန်ကြိုးစားပါ။'); }
+        }
+
+        function openReferralWithdrawal() {
+            const amount = document.getElementById('referralWithdrawAmount');
+            const phone = document.getElementById('referralPhone');
+            const email = document.getElementById('referralWithdrawEmail');
+            if (amount && !amount.value) amount.value = 20;
+            document.getElementById('referralStatus')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => { (phone || email || amount)?.focus(); }, 250);
+            alert('ငွေထုတ်ရန် ဖုန်းနံပါတ်၊ Email နှင့် ထုတ်ယူမည့်ပမာဏကို ထည့်ပေးပါ။ Admin စိစစ်ပြီးမှ လက်ကျန်နုတ်ကာ ဖုန်းဘေလ်ပေးပါမယ်။');
         }
 
         async function submitReferralClaim() {
