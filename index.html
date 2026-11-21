@@ -190,6 +190,18 @@
         .smart-chat-composer .smart-quick-actions { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 3px; }
         .smart-chat-composer .smart-quick-actions button { white-space: nowrap; }
         .smart-chat-composer .smart-input-row input { padding: 12px; }
+        .referral-hero { background: linear-gradient(135deg, #047857, #0f766e); color: #fff; padding: 20px; border-radius: 20px; margin-bottom: 16px; }
+        .referral-hero h3 { margin: 0 0 7px; }
+        .referral-hero p { margin: 0; font-size: 12px; line-height: 1.55; opacity: .92; }
+        .referral-link-row { display: flex; gap: 7px; margin-top: 14px; }
+        .referral-link-row input { min-width: 0; flex: 1; font-size: 12px; background: rgba(255,255,255,.95); }
+        .referral-link-row button { border: 0; border-radius: 10px; padding: 0 12px; background: #fbbf24; color: #422006; font-weight: 800; }
+        .referral-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+        .referral-stat { padding: 11px; border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; }
+        .referral-stat small { display: block; color: #166534; font-size: 11px; margin-bottom: 4px; }
+        .referral-stat strong { color: #14532d; font-size: 19px; }
+        .referral-status { margin-top: 12px; padding: 11px; border-radius: 11px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 12px; line-height: 1.5; }
+        .referral-help { color: var(--text-sub); font-size: 11px; line-height: 1.55; margin-top: 10px; }
         .profile-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
         .avatar-uploader { text-align: center; padding: 14px; margin-bottom: 16px; border: 1px dashed #cbd5e1; border-radius: 16px; background: #f8fafc; }
         .avatar-preview { width: 86px; height: 86px; margin: 0 auto 10px; border-radius: 24px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #e2e8f0; color: var(--primary); font-size: 38px; border: 3px solid #dbeafe; }
@@ -329,6 +341,22 @@
             </div>
         </div>
 
+        <div id="referral" class="page">
+            <div class="referral-hero">
+                <h3>🎁 သူငယ်ချင်းဖိတ်ခေါ်ပြီး ၂၀฿ ရယူပါ</h3>
+                <p>သူငယ်ချင်းတစ်ယောက်က သင့်လင့်ခ်နဲ့ DailyWage ကို အသုံးပြုပြီး စာရင်းသွင်းပါက Admin စိစစ်ပြီး ဆုငွေကို ဖုန်းဘေလ်အဖြစ် ပေးချေပါမယ်။ Campaign စုစုပေါင်း အများဆုံး ၁၀၀฿ ရနိုင်ပါတယ်။</p>
+                <div class="referral-link-row"><input id="referralLink" readonly><button type="button" onclick="copyReferralLink()">လင့်ခ်ကူး</button></div>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom:8px;">📣 ဖိတ်ခေါ်မှုအခြေအနေ</h3>
+                <div id="referralStats" class="referral-stat-grid"></div>
+                <div id="referralStatus" class="referral-status">Referral data ရယူနေပါသည်...</div>
+                <div class="form-group" style="margin-top:16px;"><label>ဆုလက်ခံမည့် ဖုန်းနံပါတ်</label><input id="referralPhone" type="tel" inputmode="tel" placeholder="08xxxxxxxx"></div>
+                <button class="btn-save" type="button" onclick="submitReferralClaim()">🎁 ဆုတောင်းခံလွှာ တင်မည်</button>
+                <p class="referral-help">လိမ်လည်မှုကာကွယ်ရန် device တစ်ခုလျှင် referral တစ်ကြိမ်၊ ဖုန်းနံပါတ်တစ်ခုလျှင် ဆုတစ်ကြိမ်သာ ခွင့်ပြုထားပါတယ်။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။</p>
+            </div>
+        </div>
+
         <div id="profile" class="page">
             <div class="card">
                 <h3 style="margin-bottom:15px;" class="t-profile">ကိုယ်ရေးအချက်အလက်</h3>
@@ -353,6 +381,7 @@
                 <div class="form-group"><label>ကုတ်နံပါတ်</label><input type="text" id="pCode"></div>
                 <div class="form-group"><label>တနေ့လုပ်အားခ</label><input type="number" id="pWage"></div>
                 <div class="form-group"><label>OT နာရီခ</label><input type="number" id="pOt"></div>
+                <div class="form-group"><label>ဖုန်းနံပါတ် (Referral စိစစ်ရန်)</label><input type="tel" id="pPhone" inputmode="tel" placeholder="08xxxxxxxx"></div>
                 <button class="btn-save" onclick="saveProfile()">💾 Update Profile</button>
                 <div class="form-group" style="margin-top:18px;"><label>Login Email</label><input type="email" id="pEmail" placeholder="you@example.com" autocomplete="email"></div>
                 <button class="btn-save" style="margin-top:10px; background:#0f172a;" onclick="goToBattle()">⚔️ GO TO BATTLE</button>
@@ -367,6 +396,7 @@
         <div class="nav-item" onclick="showPage('balance')"><span class="nav-icon">🧮</span><span class="nav-text t-balance">လက်ကျန်</span></div>
         <div class="nav-item" onclick="showPage('graph')"><span class="nav-icon">📊</span><span class="nav-text t-graph">ဂရပ်</span></div>
         <div class="nav-item" onclick="showPage('smart')"><span class="nav-icon">✨</span><span class="nav-text">AI</span></div>
+        <div class="nav-item" onclick="showPage('referral')"><span class="nav-icon">🎁</span><span class="nav-text">ဖိတ်ခေါ်</span></div>
     </div>
 
     <div id="successModal" class="modal"><div class="modal-content"><h2>✅ Success!</h2><button class="btn-save" style="margin-top:20px;" onclick="closeModal('successModal')">OK</button></div></div>
@@ -403,6 +433,11 @@
         let myChart = null;
         let firebaseListenerCode = null;
         let deviceId = profile.deviceId || '';
+        const REFERRAL_REWARD = 20;
+        const REFERRAL_MAX_REWARD = 100;
+        const referralCodeFromUrl = (new URLSearchParams(location.search).get('ref') || '').trim().toUpperCase();
+        let referralAttribution = null;
+        let referralClaims = [];
 
         const langMap = {
             my: { income:"ဝင်ငွေ", expense:"ထွက်ငွေ", history:"မှတ်တမ်း", balance:"လက်ကျန်", graph:"ဂရပ်", profile:"ကိုယ်ရေး", date:"ရက်စွဲ", save:"သိမ်းမည်", totalBal:"စုစုပေါင်းလက်ကျန်ငွေ", work:"ရက်ပေါင်း", hours:"အလုပ်ချိန်", ot:"OT", clear:"စာရင်းဖျက်ရန်", amount:"ပမာဏ", cat:"အမျိုးအစား", extra:"အပိုဝင်ငွေ" },
@@ -425,7 +460,7 @@
             });
         }
 
-        const navigationPages = ['income', 'expense', 'history', 'balance', 'graph', 'smart'];
+        const navigationPages = ['income', 'expense', 'history', 'balance', 'graph', 'smart', 'referral'];
 
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -439,6 +474,7 @@
             if(id === 'balance') updateBalance();
             if(id === 'history') renderList();
             if(id === 'graph') renderGraph();
+            if(id === 'referral') loadReferralClaimStatus();
         }
 
         function setupSwipeNavigation() {
@@ -577,10 +613,10 @@
         }
 
         function updateProfileInputs() {
-            ['pName', 'pCode', 'pWage', 'pOt', 'pEmail'].forEach(id => {
+            ['pName', 'pCode', 'pWage', 'pOt', 'pEmail', 'pPhone'].forEach(id => {
                 const element = document.getElementById(id);
                 if (!element) return;
-                const key = id === 'pName' ? 'name' : id === 'pCode' ? 'code' : id === 'pWage' ? 'wage' : id === 'pOt' ? 'ot' : 'email';
+                const key = id === 'pName' ? 'name' : id === 'pCode' ? 'code' : id === 'pWage' ? 'wage' : id === 'pOt' ? 'ot' : id === 'pEmail' ? 'email' : 'phone';
                 element.value = profile[key] ?? '';
             });
         }
@@ -619,6 +655,9 @@
                 updateProfileInputs();
                 updateHeader();
                 syncFromFirebase();
+                await syncReferralActivity(true);
+                await captureReferralAttribution();
+                await loadReferralClaimStatus();
             } catch (error) {
                 console.warn('Device registry unavailable; continuing with local profile:', error);
             }
@@ -662,6 +701,137 @@
 
         function syncToFirebase() {
             db.ref('users/' + profile.code).update({ profile, records, lastUpdate: new Date().toISOString() });
+            syncReferralActivity();
+        }
+
+        function normalizedReferralPhone(value) {
+            return String(value || '').replace(/[^0-9]/g, '');
+        }
+
+        function referralPhoneDocId(value) {
+            const phone = normalizedReferralPhone(value);
+            return phone ? `phone_${phone}` : '';
+        }
+
+        function referralActivitySnapshot() {
+            const income = records.filter(record => record.type === 'income');
+            const expense = records.filter(record => record.type === 'expense');
+            return {
+                recordCount: records.length,
+                incomeCount: income.length,
+                expenseCount: expense.length,
+                otHours: income.reduce((sum, record) => sum + Number(record.details?.o || 0), 0),
+                firstRecordAt: records.length ? String(records.map(record => record.date || '').sort()[0] || '') : '',
+                lastRecordAt: records.length ? String(records.map(record => record.date || '').sort().slice(-1)[0] || '') : ''
+            };
+        }
+
+        async function syncReferralActivity(incrementOpen = false) {
+            if (!profile.code || !deviceId) return;
+            const activity = referralActivitySnapshot();
+            const sessionKey = `dailywage_referral_session_${profile.code}`;
+            const shouldIncrement = incrementOpen && sessionStorage.getItem(sessionKey) !== '1';
+            try {
+                const ref = firestore.collection('referralUsers').doc(profile.code);
+                const payload = {
+                    profileCode: profile.code,
+                    name: profile.name || 'User',
+                    deviceId,
+                    lastActiveAt: new Date().toISOString(),
+                    ...activity
+                };
+                if (shouldIncrement) payload.appOpenCount = firebase.firestore.FieldValue.increment(1);
+                await ref.set(payload, { merge: true });
+                if (shouldIncrement) sessionStorage.setItem(sessionKey, '1');
+            } catch (error) { console.warn('Referral activity sync failed:', error); }
+        }
+
+        async function captureReferralAttribution() {
+            if (!referralCodeFromUrl || !profile.code || profile.code === 'EMP001' && profile.name === 'User' || !deviceId) return;
+            const status = document.getElementById('referralStatus');
+            if (referralCodeFromUrl === String(profile.code).toUpperCase()) {
+                referralAttribution = { status: 'blocked', reason: 'Self-referral' };
+                if (status) status.innerText = 'ကိုယ့် referral link ကို ကိုယ်တိုင်အသုံးပြု၍ မရပါ။';
+                return;
+            }
+            try {
+                const referrerSnapshot = await db.ref('users/' + referralCodeFromUrl).once('value');
+                if (!referrerSnapshot.exists() || !referrerSnapshot.val()?.profile) {
+                    if (status) status.innerText = 'Referral code မတွေ့ပါ။ Link ကို ပြန်စစ်ပေးပါ။';
+                    return;
+                }
+                const attrRef = firestore.collection('referralAttributions').doc(profile.code);
+                const deviceRef = firestore.collection('referralDevices').doc(deviceId);
+                await firestore.runTransaction(async transaction => {
+                    const attrSnapshot = await transaction.get(attrRef);
+                    const deviceSnapshot = await transaction.get(deviceRef);
+                    if (attrSnapshot.exists) return;
+                    if (deviceSnapshot.exists && deviceSnapshot.data()?.referredProfileCode !== profile.code) throw new Error('DEVICE_ALREADY_REFERRED');
+                    transaction.set(attrRef, { referrerCode: referralCodeFromUrl, referredCode: profile.code, referredDeviceId: deviceId, status: 'attributed', createdAt: new Date().toISOString() });
+                    transaction.set(deviceRef, { deviceId, referredProfileCode: profile.code, referrerCode: referralCodeFromUrl, createdAt: new Date().toISOString() }, { merge: true });
+                });
+                referralAttribution = { referrerCode: referralCodeFromUrl, referredCode: profile.code, status: 'attributed' };
+                if (status) status.innerText = `ဖိတ်ခေါ်သူ CODE ${referralCodeFromUrl} ကို မှတ်တမ်းတင်ပြီးပါပြီ။ စာရင်းအသုံးပြုပြီး ဆုတောင်းခံနိုင်ပါတယ်။`;
+            } catch (error) {
+                console.warn('Referral attribution failed:', error);
+                if (status) status.innerText = error.message === 'DEVICE_ALREADY_REFERRED' ? 'ဒီ device မှာ referral အသုံးပြုပြီးသားဖြစ်ပါတယ်။' : 'Referral မှတ်တမ်းတင်မရသေးပါ။ နောက်မှ ပြန်ကြိုးစားပါ။';
+            }
+        }
+
+        function referralLink() {
+            const url = new URL(location.href);
+            url.search = '';
+            url.searchParams.set('ref', String(profile.code || '').toUpperCase());
+            return url.toString();
+        }
+
+        async function copyReferralLink() {
+            const input = document.getElementById('referralLink');
+            if (!input?.value) return;
+            try { await navigator.clipboard.writeText(input.value); alert('Referral link ကို ကူးပြီးပါပြီ။'); }
+            catch (error) { input.select(); document.execCommand('copy'); alert('Referral link ကို ကူးပြီးပါပြီ။'); }
+        }
+
+        async function loadReferralClaimStatus() {
+            if (!profile.code) return;
+            const status = document.getElementById('referralStatus');
+            try {
+                const attr = await firestore.collection('referralAttributions').doc(profile.code).get();
+                referralAttribution = attr.exists ? attr.data() : referralAttribution;
+                const claim = await firestore.collection('referralClaims').doc(profile.code).get();
+                const data = claim.exists ? claim.data() : null;
+                const stats = document.getElementById('referralStats');
+                const activity = referralActivitySnapshot();
+                if (stats) stats.innerHTML = `<div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>${activity.recordCount}</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>${data?.activity?.appOpenCount || '—'}</strong></div><div class="referral-stat"><small>ဆုငွေ</small><strong>${data?.rewardAmount || 0}฿</strong></div><div class="referral-stat"><small>Status</small><strong>${data?.status || 'မတင်ရသေး'}</strong></div>`;
+                if (status && !status.innerText.includes('မှတ်တမ်းတင်ပြီး')) status.innerText = data ? `Claim status: ${data.status}။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။` : (referralAttribution ? `ဖိတ်ခေါ်သူ ${referralAttribution.referrerCode} မှတ်တမ်းတင်ထားပါတယ်။` : 'Referral link ဖြင့် ဝင်လာပြီးမှ ဆုတောင်းခံနိုင်ပါတယ်။');
+                const link = document.getElementById('referralLink'); if (link) link.value = referralLink();
+            } catch (error) { console.warn('Referral claim status failed:', error); }
+        }
+
+        async function submitReferralClaim() {
+            const phone = normalizedReferralPhone(document.getElementById('referralPhone')?.value || profile.phone);
+            if (!profile.code || !deviceId) return alert('Profile နှင့် device ကို အရင်သိမ်းပေးပါ။');
+            if (!referralAttribution?.referrerCode) return alert('Referral link ဖြင့် ဝင်လာသော user ဖြစ်မှ ဆုတောင်းခံနိုင်ပါမယ်။');
+            if (referralAttribution.referrerCode === profile.code) return alert('ကိုယ့်ကိုယ်ကိုယ် referral ပြုလုပ်၍ မရပါ။');
+            if (phone.length < 8) return alert('ဆုလက်ခံမည့် ဖုန်းနံပါတ် မှန်ကန်စွာ ထည့်ပေးပါ။');
+            try {
+                const referrerSnapshot = await db.ref('users/' + referralAttribution.referrerCode).once('value');
+                const referrer = referrerSnapshot.val()?.profile || {};
+                if (normalizedReferralPhone(referrer.phone) && normalizedReferralPhone(referrer.phone) === phone) return alert('ဖိတ်ခေါ်သူနှင့် ဖိတ်ခေါ်ခံရသူ ဖုန်းနံပါတ်တူနေသောကြောင့် ဆုတောင်းခံ၍ မရပါ။');
+                const claimRef = firestore.collection('referralClaims').doc(profile.code);
+                const phoneRef = firestore.collection('referralPhones').doc(referralPhoneDocId(phone));
+                const activity = referralActivitySnapshot();
+                const existingClaim = await claimRef.get();
+                if (existingClaim.exists) return alert(`Claim ရှိပြီးသားဖြစ်ပါတယ်။ Status: ${existingClaim.data()?.status || 'Pending'}`);
+                await firestore.runTransaction(async transaction => {
+                    const phoneSnapshot = await transaction.get(phoneRef);
+                    if (phoneSnapshot.exists) throw new Error('PHONE_ALREADY_USED');
+                    transaction.set(phoneRef, { phoneNumber: phone, claimId: profile.code, referredCode: profile.code, createdAt: new Date().toISOString() });
+                    transaction.set(claimRef, { referrerCode: referralAttribution.referrerCode, referredCode: profile.code, referrerName: referrer.name || referralAttribution.referrerCode, referredName: profile.name || 'User', referredDeviceId: deviceId, phoneNumber: phone, rewardAmount: REFERRAL_REWARD, rewardCap: REFERRAL_MAX_REWARD, status: 'Pending', fraudFlags: [], activity: { ...activity, appOpenCount: 1 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+                });
+                alert('Referral ဆုတောင်းခံလွှာ တင်ပြီးပါပြီ။ Admin စိစစ်ပြီးမှ ဖုန်းဘေလ် ထည့်ပေးပါမယ်။');
+                loadReferralClaimStatus();
+            } catch (error) { alert(error.message === 'PHONE_ALREADY_USED' ? 'ဒီဖုန်းနံပါတ်နဲ့ ဆုရယူပြီးသားဖြစ်ပါတယ်။' : 'Claim တင်မရသေးပါ။ နောက်မှ ပြန်ကြိုးစားပါ။'); }
         }
 
         function recordKey(record) {
@@ -1231,11 +1401,17 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             profile.email = document.getElementById('pEmail').value.trim();
             profile.wage = parseFloat(document.getElementById('pWage').value);
             profile.ot = parseFloat(document.getElementById('pOt').value);
+            profile.phone = normalizedReferralPhone(document.getElementById('pPhone').value);
             profile.avatar = profile.avatar || profile.av || '👷';
             profile.avatarMode = profile.avatarMode || 'emoji';
             await claimDeviceIdentity();
+            profile.phone = normalizedReferralPhone(document.getElementById('pPhone').value) || profile.phone || '';
             localStorage.setItem('f_prof', JSON.stringify(profile));
-            updateHeader(); syncFromFirebase(); syncToFirebase(); alert("Saved!");
+            updateHeader(); syncFromFirebase(); syncToFirebase();
+            await syncReferralActivity(true);
+            await captureReferralAttribution();
+            await loadReferralClaimStatus();
+            alert("Saved!");
         }
 
         function goToBattle() {
@@ -1265,6 +1441,7 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             document.getElementById('pWage').value = profile.wage;
             document.getElementById('pOt').value = profile.ot;
             document.getElementById('pEmail').value = profile.email || '';
+            document.getElementById('pPhone').value = profile.phone || '';
             document.getElementById('topLang').value = profile.lang;
             updateHeader(); setLang(profile.lang); renderSmartChatHistory(); syncFromFirebase(); initializeDeviceIdentity(); setupSwipeNavigation();
         };
