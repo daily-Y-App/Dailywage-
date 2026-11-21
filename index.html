@@ -196,6 +196,7 @@
         .referral-link-row { display: flex; gap: 7px; margin-top: 14px; }
         .referral-link-row input { min-width: 0; flex: 1; font-size: 12px; background: rgba(255,255,255,.95); }
         .referral-link-row button { border: 0; border-radius: 10px; padding: 0 12px; background: #fbbf24; color: #422006; font-weight: 800; }
+        .referral-share-button { width: 100%; margin-top: 12px; padding: 14px; border: 0; border-radius: 12px; background: #fbbf24; color: #422006; font-weight: 800; cursor: pointer; }
         .referral-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
         .referral-stat { padding: 11px; border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; }
         .referral-stat small { display: block; color: #166534; font-size: 11px; margin-bottom: 4px; }
@@ -346,6 +347,7 @@
                 <h3>🎁 သူငယ်ချင်းဖိတ်ခေါ်ပြီး ၂၀฿ ရယူပါ</h3>
                 <p>သူငယ်ချင်းတစ်ယောက်က သင့်လင့်ခ်နဲ့ DailyWage ကို အသုံးပြုပြီး စာရင်းသွင်းပါက Admin စိစစ်ပြီး ဆုငွေကို ဖုန်းဘေလ်အဖြစ် ပေးချေပါမယ်။ Campaign စုစုပေါင်း အများဆုံး ၁၀၀฿ ရနိုင်ပါတယ်။</p>
                 <div class="referral-link-row"><input id="referralLink" readonly><button type="button" onclick="copyReferralLink()">လင့်ခ်ကူး</button></div>
+                <button type="button" class="referral-share-button" onclick="shareDailyWageDownload()">📤 ဖိတ်ခေါ်ပါမည်</button>
             </div>
             <div class="card">
                 <h3 style="margin-bottom:8px;">📣 ဖိတ်ခေါ်မှုအခြေအနေ</h3>
@@ -792,6 +794,26 @@
             if (!input?.value) return;
             try { await navigator.clipboard.writeText(input.value); alert('Referral link ကို ကူးပြီးပါပြီ။'); }
             catch (error) { input.select(); document.execCommand('copy'); alert('Referral link ကို ကူးပြီးပါပြီ။'); }
+        }
+
+        async function shareDailyWageDownload() {
+            const url = 'https://daily-y-app.github.io/Apk-download';
+            const text = `Daily Wage App ကို ဒီမှာ download လုပ်ပါ။ ${url}`;
+            try {
+                if (navigator.share) {
+                    await navigator.share({ title: 'Daily Wage App', text, url });
+                    return;
+                }
+                await navigator.clipboard.writeText(text);
+                alert('Download link ကို ကူးပြီးပါပြီ။ မျှဝေချင်တဲ့နေရာမှာ Paste လုပ်ပါ။');
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                try {
+                    const helper = document.createElement('textarea');
+                    helper.value = text; document.body.appendChild(helper); helper.select(); document.execCommand('copy'); helper.remove();
+                    alert('Download link ကို ကူးပြီးပါပြီ။ မျှဝေချင်တဲ့နေရာမှာ Paste လုပ်ပါ။');
+                } catch (copyError) { window.prompt('ဒီ link ကို copy လုပ်ပါ', text); }
+            }
         }
 
         async function loadReferralClaimStatus() {
