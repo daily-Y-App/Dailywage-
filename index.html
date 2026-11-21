@@ -357,9 +357,7 @@
                 <div id="referralStatus" class="referral-status">Referral data ရယူနေပါသည်...</div>
                 <div class="form-group" style="margin-top:16px;"><label>ဆုလက်ခံမည့် ဖုန်းနံပါတ်</label><input id="referralPhone" type="tel" inputmode="tel" placeholder="08xxxxxxxx"></div>
                 <button class="btn-save" type="button" onclick="submitReferralClaim()">🎁 ဆုတောင်းခံလွှာ တင်မည်</button>
-                <div class="form-group" style="margin-top:18px;"><label>ထုတ်ယူမည့် ဆုငွေပမာဏ (အနည်းဆုံး ၂၀฿)</label><input id="referralWithdrawAmount" type="number" min="20" step="10" placeholder="20"></div>
-                <div class="form-group"><label>ဆုလက်ခံမည့် Email</label><input id="referralWithdrawEmail" type="email" placeholder="you@example.com"></div>
-                <button class="btn-save" type="button" style="background:#047857;" onclick="submitReferralWithdrawal()">💸 ဆုငွေထုတ်ယူရန် တောင်းခံမည်</button>
+                <button class="btn-save" type="button" style="margin-top:18px;background:#047857;" onclick="openReferralWithdrawal()">💸 လက်ကျန်ငွေ ထုတ်ယူရန်</button>
                 <p class="referral-help">လိမ်လည်မှုကာကွယ်ရန် device တစ်ခုလျှင် referral တစ်ကြိမ်၊ ဖုန်းနံပါတ်တစ်ခုလျှင် ဆုတစ်ကြိမ်သာ ခွင့်ပြုထားပါတယ်။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။</p>
             </div>
         </div>
@@ -413,6 +411,17 @@
             <h2 class="record-detail-title">📋 မှတ်တမ်းအသေးစိတ်</h2>
             <div id="recordDetailContent"></div>
             <button class="btn-save" style="margin-top:18px;" onclick="closeModal('recordDetailModal')">ပိတ်မည်</button>
+        </div>
+    </div>
+    <div id="withdrawalModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="withdrawalModalTitle">
+        <div class="modal-content" style="text-align:left;">
+            <h2 id="withdrawalModalTitle" style="text-align:center;color:var(--primary);">💸 ဆုငွေထုတ်ယူရန်</h2>
+            <p style="font-size:12px;color:var(--text-sub);line-height:1.5;margin:10px 0 16px;">ဖုန်းနံပါတ်နှင့် Email ကို Admin စိစစ်ပြီးမှ လက်ကျန်ငွေကို နုတ်ကာ ဖုန်းဘေလ်ပေးပါမယ်။</p>
+            <div class="form-group"><label>ဖုန်းနံပါတ်</label><input id="referralWithdrawPhone" type="tel" inputmode="tel" placeholder="08xxxxxxxx" required></div>
+            <div class="form-group"><label>Email</label><input id="referralWithdrawEmail" type="email" placeholder="you@example.com" required></div>
+            <div class="form-group"><label>ထုတ်ယူမည့်ငွေပမာဏ (အနည်းဆုံး ၂၀฿)</label><input id="referralWithdrawAmount" type="number" min="20" step="10" placeholder="20" required></div>
+            <button class="btn-save" type="button" onclick="submitReferralWithdrawal()">တောင်းဆိုမည်</button>
+            <button class="btn-save" type="button" style="margin-top:10px;background:#64748b;" onclick="closeModal('withdrawalModal')">မလုပ်တော့ပါ</button>
         </div>
     </div>
 
@@ -846,7 +855,7 @@
 
         async function submitReferralWithdrawal() {
             const amount = Number(document.getElementById('referralWithdrawAmount')?.value || 0);
-            const phone = normalizedReferralPhone(document.getElementById('referralPhone')?.value || profile.phone);
+            const phone = normalizedReferralPhone(document.getElementById('referralWithdrawPhone')?.value || profile.phone);
             const email = String(document.getElementById('referralWithdrawEmail')?.value || profile.email || '').trim().toLowerCase();
             if (!profile.code || amount < 20 || !phone || !email || !email.includes('@')) return alert('ဖုန်းနံပါတ်၊ Email နှင့် အနည်းဆုံး ၂၀฿ ထည့်ပေးပါ။');
             try {
@@ -859,6 +868,7 @@
                     transaction.set(withdrawalRef, { referrerCode: profile.code, referrerName: profile.name || 'User', phoneNumber: phone, email, amount, status: 'Pending', createdAt: new Date().toISOString() });
                     transaction.set(firestore.collection('adminNotifications').doc(withdrawalRef.id), { type: 'withdrawal_request', withdrawalId: withdrawalRef.id, referrerCode: profile.code, referrerName: profile.name || 'User', phoneNumber: phone, email, amount, status: 'Unread', createdAt: new Date().toISOString() });
                 });
+                closeModal('withdrawalModal');
                 alert('ဆုငွေထုတ်ယူရန် တောင်းခံလွှာ တင်ပြီးပါပြီ။ Admin စိစစ်ပြီး လက်ကျန်ထဲမှ နုတ်ယူပေးပါမယ်။');
                 loadReferralClaimStatus();
             } catch (error) { alert(error.message === 'INSUFFICIENT_BALANCE' ? 'ဆုငွေလက်ကျန် မလုံလောက်သေးပါ။' : 'ထုတ်ယူရန် တောင်းခံမရသေးပါ။ နောက်မှ ပြန်ကြိုးစားပါ။'); }
@@ -866,12 +876,13 @@
 
         function openReferralWithdrawal() {
             const amount = document.getElementById('referralWithdrawAmount');
-            const phone = document.getElementById('referralPhone');
+            const phone = document.getElementById('referralWithdrawPhone');
             const email = document.getElementById('referralWithdrawEmail');
             if (amount && !amount.value) amount.value = 20;
-            document.getElementById('referralStatus')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (phone && !phone.value) phone.value = profile.phone || '';
+            if (email && !email.value) email.value = profile.email || '';
+            document.getElementById('withdrawalModal').style.display = 'flex';
             setTimeout(() => { (phone || email || amount)?.focus(); }, 250);
-            alert('ငွေထုတ်ရန် ဖုန်းနံပါတ်၊ Email နှင့် ထုတ်ယူမည့်ပမာဏကို ထည့်ပေးပါ။ Admin စိစစ်ပြီးမှ လက်ကျန်နုတ်ကာ ဖုန်းဘေလ်ပေးပါမယ်။');
         }
 
         async function submitReferralClaim() {
