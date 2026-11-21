@@ -797,11 +797,13 @@
         }
 
         async function shareDailyWageDownload() {
-            const url = 'https://daily-y-app.github.io/Apk-download';
-            const text = `Daily Wage App ကို ဒီမှာ download လုပ်ပါ။ ${url}`;
+            const downloadUrl = 'https://daily-y-app.github.io/Apk-download';
+            const code = String(profile.code || '').trim().toUpperCase();
+            const personalLink = code ? referralLink() : downloadUrl;
+            const text = `Daily Wage App ကို ဒီမှာ download လုပ်ပါ။\nDownload: ${downloadUrl}\nReferral Code: ${code || 'မသတ်မှတ်ရသေးပါ'}\nReferral Link: ${personalLink}`;
             try {
                 if (navigator.share) {
-                    await navigator.share({ title: 'Daily Wage App', text, url });
+                    await navigator.share({ title: 'Daily Wage App', text, url: personalLink });
                     return;
                 }
                 await navigator.clipboard.writeText(text);
