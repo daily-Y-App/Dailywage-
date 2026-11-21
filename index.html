@@ -857,6 +857,7 @@
                     const balance = balanceSnapshot.exists ? balanceSnapshot.data() : {};
                     if (Number(balance.availableBalance || 0) < amount) throw new Error('INSUFFICIENT_BALANCE');
                     transaction.set(withdrawalRef, { referrerCode: profile.code, referrerName: profile.name || 'User', phoneNumber: phone, email, amount, status: 'Pending', createdAt: new Date().toISOString() });
+                    transaction.set(firestore.collection('adminNotifications').doc(withdrawalRef.id), { type: 'withdrawal_request', withdrawalId: withdrawalRef.id, referrerCode: profile.code, referrerName: profile.name || 'User', phoneNumber: phone, email, amount, status: 'Unread', createdAt: new Date().toISOString() });
                 });
                 alert('ဆုငွေထုတ်ယူရန် တောင်းခံလွှာ တင်ပြီးပါပြီ။ Admin စိစစ်ပြီး လက်ကျန်ထဲမှ နုတ်ယူပေးပါမယ်။');
                 loadReferralClaimStatus();
