@@ -796,19 +796,48 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             return 0;
         }
 
+        function assistantDateKey(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function parseAssistantEntryDate(normalized) {
+            const now = new Date();
+            const dayMatch = normalized.match(/(\d{1,2})\s*ရက်(?:နေ့)?/);
+            let target = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let matched = '';
+            let label = 'ဒီနေ့';
+            if (/မနေ့က|မနေ့|ယမန်နေ့|yesterday/.test(normalized)) {
+                target.setDate(target.getDate() - 1);
+                matched = normalized.match(/မနေ့က|မနေ့|ယမန်နေ့|yesterday/)?.[0] || '';
+                label = 'မနေ့က';
+            } else if (dayMatch) {
+                const day = Number(dayMatch[1]);
+                const candidate = new Date(now.getFullYear(), now.getMonth(), day);
+                if (day >= 1 && day <= 31 && candidate.getDate() === day) {
+                    target = candidate;
+                    if (day > now.getDate()) target.setMonth(target.getMonth() - 1);
+                    matched = dayMatch[0];
+                    label = `${day} ရက်နေ့`;
+                }
+            }
+            return { date: assistantDateKey(target), matched, label };
+        }
+
         function assistantAddIncome(command) {
             const normalized = normalizeAssistantDigits(command).toLowerCase();
-            const numbers = normalized.match(/\d+(?:\.\d+)?/g) || [];
+            const dateInfo = parseAssistantEntryDate(normalized);
+            const amountSource = dateInfo.matched ? normalized.replace(dateInfo.matched, ' ') : normalized;
+            const numbers = amountSource.match(/\d+(?:\.\d+)?/g) || [];
             const otHours = parseAssistantOtHours(normalized);
             const wage = Number(profile.wage || 0);
             const explicitAmount = numbers.length && (!otHours || Number(numbers[0]) !== otHours || numbers.length > 1) ? Number(numbers[0]) : 0;
-            const useProfileWage = /တစ်နေ့စား|တစ်ရက်ခ|နေ့စား|နေ့စားခ|လုပ်အားခ|daily wage|ဒီနေ့\s*(စာရင်း|ဝင်ငွေ|လုပ်အားခ)|စာရင်းသွင်း|စရင်း/.test(normalized);
+            const useProfileWage = /တစ်နေ့စား|တစ်ရက်ခ|နေ့စား|နေ့စားခ|လုပ်အားခ|daily wage|ဒီနေ့\s*(စာရင်း|ဝင်ငွေ|လုပ်အားခ)|စာရင်း(?:သွင်း|ထည့်|ထည့်)|စရင်း/.test(normalized);
             const baseAmount = explicitAmount > 0 ? explicitAmount : (useProfileWage ? wage : 0);
             if (useProfileWage && wage <= 0) return 'Profile ထဲက တစ်နေ့လုပ်အားခ မရှိသေးပါ။ Profile မှာ တစ်နေ့လုပ်အားခ ပမာဏကို အရင်ထည့်ပေးပါ။';
             if (otHours > 0 && Number(profile.ot || 0) <= 0) return 'Profile ထဲက တစ်နာရီ OT နှုန်း မရှိသေးပါ။ Profile မှာ OT နာရီခကို အရင်ထည့်ပေးပါ။';
             if (baseAmount <= 0 && otHours <= 0) return 'တစ်နေ့လုပ်အားခ ပမာဏ သို့မဟုတ် OT နာရီ ထည့်ပေးပါ။ ဥပမာ - ဒီနေ့ လုပ်အားခနဲ့ OT 2 နာရီ ထည့်ပေး';
-            const date = new Date().toISOString().slice(0, 10);
-            if (records.some(record => record.date === date && record.type === 'income')) return 'ဒီနေ့ ဝင်ငွေစာရင်း ရှိပြီးသားဖြစ်ပါတယ်။ ထပ်မမှတ်နိုင်ပါ။';
+            const date = dateInfo.date;
+            if (records.some(record => record.date === date && record.type === 'income')) return `${dateInfo.label} ဝင်ငွေစာရင်း ရှိပြီးသားဖြစ်ပါတယ်။ ထပ်မမှတ်နိုင်ပါ။`;
             const hours = baseAmount > 0 && wage > 0 ? (baseAmount / wage) * 8 : 0;
             const otRate = Number(profile.ot || 0);
             const otPay = otHours * otRate;
@@ -823,7 +852,7 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             syncToFirebase();
             updateBalance();
             updateMonthlyInsight();
-            return `ဒီနေ့ စာရင်းသွင်းပြီးပါပြီ။\nနေ့စားခ = ${assistantMoney(baseAmount)}\nOT နာရီ = ${otHours.toFixed(1)} နာရီ\nOT နှုန်း = ${assistantMoney(otRate)} / နာရီ\nOT ငွေ = ${assistantMoney(otPay)}\nဒီနေ့ စုစုပေါင်း = ${assistantMoney(amount)}`;
+            return `${dateInfo.label} (${date}) စာရင်းသွင်းပြီးပါပြီ။\nနေ့စားခ = ${assistantMoney(baseAmount)}\nOT နာရီ = ${otHours.toFixed(1)} နာရီ\nOT နှုန်း = ${assistantMoney(otRate)} / နာရီ\nOT ငွေ = ${assistantMoney(otPay)}\nစုစုပေါင်း = ${assistantMoney(amount)}`;
         }
 
         function assistantTodayStatus() {
@@ -945,7 +974,7 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             const normalized = normalizeAssistantDigits(text).toLowerCase();
             const todayStatusIntent = /ဒီနေ့|ယနေ့|today/.test(normalized) && /မှတ်ထား|မှတ်ပြီး|မှတ်မိ|ထည့်ပြီး|ထည့်ပြီး|စာရင်းရှိ|ရှိသေးလား|မေ့|လုပ်ပြီး/.test(normalized);
             const generalQuestionIntent = /အကြံ|အကြံပေး|ဘယ်လို.*(?:လုပ်|ရ|သုံး)|သင့်လဲ|သင့်လဲ|ကောင်းမလဲ|ရအောင်|ဘာလဲ|ဘာဖြစ်/.test(normalized);
-            const wageAddIntent = /(?:ဒီနေ့|ယနေ့)\s*(?:\d+(?:\.\d+)?|စာရင်း|စရင်း|ဝင်ငွေ|အလုပ်လုပ်)|(?:စာရင်း|စရင်း).*(?:သွင်း|ထည့်|ထည့်)|(?:တစ်နေ့စား|နေ့စားခ?).*(?:သွင်း|ထည့်|ထည့်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:\d|တစ်နာရီ|နှစ်နာရီ|သုံးနာရီ|လေးနာရီ)/.test(normalized);
+            const wageAddIntent = /(?:ဒီနေ့|ယနေ့|မနေ့က|မနေ့|ယမန်နေ့|yesterday|\d{1,2}\s*ရက်(?:နေ့)?)\s*(?:\d+(?:\.\d+)?|စာရင်း|စရင်း|ဝင်ငွေ|အလုပ်လုပ်|လုပ်အားခ|ထည့်|ထည့်)?|(?:စာရင်း|စရင်း).*(?:သွင်း|ထည့်|ထည့်)|(?:တစ်နေ့စား|နေ့စားခ?).*(?:သွင်း|ထည့်|ထည့်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:\d|တစ်နာရီ|နှစ်နာရီ|သုံးနာရီ|လေးနာရီ)/.test(normalized);
             const wageTotalsIntent = /(?:လစာ|ဒီလ)\s*(?:ပေါင်း|တွက်|စု|စာရင်း|ဝင်ငွေ|ထွက်ငွေ)|(?:စုစုပေါင်း|ပေါင်းပေး|လက်ကျန်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:ပေါင်း|တွက်)|(?:ဝင်ငွေ|ထွက်ငွေ).*(?:ဘယ်လောက်|ရှိ|စု|ပေါင်း|တွက်)|\b(?:balance|total)\b/.test(normalized);
             try {
                 let result = '';
