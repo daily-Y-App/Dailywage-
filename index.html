@@ -353,6 +353,8 @@
                 <div id="referralStatus" class="referral-status">Referral data ရယူနေပါသည်...</div>
                 <div class="form-group" style="margin-top:16px;"><label>ဆုလက်ခံမည့် ဖုန်းနံပါတ်</label><input id="referralPhone" type="tel" inputmode="tel" placeholder="08xxxxxxxx"></div>
                 <button class="btn-save" type="button" onclick="submitReferralClaim()">🎁 ဆုတောင်းခံလွှာ တင်မည်</button>
+                <div class="form-group" style="margin-top:18px;"><label>ထုတ်ယူမည့် ဆုငွေပမာဏ (အနည်းဆုံး ၂၀฿)</label><input id="referralWithdrawAmount" type="number" min="20" step="10" placeholder="20"></div>
+                <button class="btn-save" type="button" style="background:#047857;" onclick="submitReferralWithdrawal()">💸 ဆုငွေထုတ်ယူရန် တောင်းခံမည်</button>
                 <p class="referral-help">လိမ်လည်မှုကာကွယ်ရန် device တစ်ခုလျှင် referral တစ်ကြိမ်၊ ဖုန်းနံပါတ်တစ်ခုလျှင် ဆုတစ်ကြိမ်သာ ခွင့်ပြုထားပါတယ်။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။</p>
             </div>
         </div>
@@ -800,12 +802,32 @@
                 referralAttribution = attr.exists ? attr.data() : referralAttribution;
                 const claim = await firestore.collection('referralClaims').doc(profile.code).get();
                 const data = claim.exists ? claim.data() : null;
+                const balanceSnapshot = await firestore.collection('referralBalances').doc(profile.code).get();
+                const balance = balanceSnapshot.exists ? balanceSnapshot.data() : { availableBalance: 0 };
                 const stats = document.getElementById('referralStats');
                 const activity = referralActivitySnapshot();
-                if (stats) stats.innerHTML = `<div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>${activity.recordCount}</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>${data?.activity?.appOpenCount || '—'}</strong></div><div class="referral-stat"><small>ဆုငွေ</small><strong>${data?.rewardAmount || 0}฿</strong></div><div class="referral-stat"><small>Status</small><strong>${data?.status || 'မတင်ရသေး'}</strong></div>`;
+                if (stats) stats.innerHTML = `<div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>${activity.recordCount}</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>${data?.activity?.appOpenCount || '—'}</strong></div><div class="referral-stat"><small>ဆုငွေလက်ကျန်</small><strong>${Number(balance.availableBalance || 0)}฿</strong></div><div class="referral-stat"><small>Claim Status</small><strong>${data?.status || 'မတင်ရသေး'}</strong></div>`;
                 if (status && !status.innerText.includes('မှတ်တမ်းတင်ပြီး')) status.innerText = data ? `Claim status: ${data.status}။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။` : (referralAttribution ? `ဖိတ်ခေါ်သူ ${referralAttribution.referrerCode} မှတ်တမ်းတင်ထားပါတယ်။` : 'Referral link ဖြင့် ဝင်လာပြီးမှ ဆုတောင်းခံနိုင်ပါတယ်။');
                 const link = document.getElementById('referralLink'); if (link) link.value = referralLink();
             } catch (error) { console.warn('Referral claim status failed:', error); }
+        }
+
+        async function submitReferralWithdrawal() {
+            const amount = Number(document.getElementById('referralWithdrawAmount')?.value || 0);
+            const phone = normalizedReferralPhone(document.getElementById('referralPhone')?.value || profile.phone);
+            if (!profile.code || amount < 20 || !phone) return alert('ဖုန်းနံပါတ်နှင့် အနည်းဆုံး ၂၀฿ ထည့်ပေးပါ။');
+            try {
+                const balanceRef = firestore.collection('referralBalances').doc(profile.code);
+                const withdrawalRef = firestore.collection('referralWithdrawals').doc(`${profile.code}_${Date.now()}`);
+                await firestore.runTransaction(async transaction => {
+                    const balanceSnapshot = await transaction.get(balanceRef);
+                    const balance = balanceSnapshot.exists ? balanceSnapshot.data() : {};
+                    if (Number(balance.availableBalance || 0) < amount) throw new Error('INSUFFICIENT_BALANCE');
+                    transaction.set(withdrawalRef, { referrerCode: profile.code, referrerName: profile.name || 'User', phoneNumber: phone, amount, status: 'Pending', createdAt: new Date().toISOString() });
+                });
+                alert('ဆုငွေထုတ်ယူရန် တောင်းခံလွှာ တင်ပြီးပါပြီ။ Admin စိစစ်ပြီး လက်ကျန်ထဲမှ နုတ်ယူပေးပါမယ်။');
+                loadReferralClaimStatus();
+            } catch (error) { alert(error.message === 'INSUFFICIENT_BALANCE' ? 'ဆုငွေလက်ကျန် မလုံလောက်သေးပါ။' : 'ထုတ်ယူရန် တောင်းခံမရသေးပါ။ နောက်မှ ပြန်ကြိုးစားပါ။'); }
         }
 
         async function submitReferralClaim() {
