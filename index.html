@@ -806,9 +806,9 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             let target = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             let matched = '';
             let label = 'ဒီနေ့';
-            if (/မနေ့က|မနေ့|ယမန်နေ့|yesterday/.test(normalized)) {
+            if (/မနေ့က|မနေ့|ယမန်နေ့|အရင်နေ့|ပြီးခဲ့တဲ့နေ့|yesterday/.test(normalized)) {
                 target.setDate(target.getDate() - 1);
-                matched = normalized.match(/မနေ့က|မနေ့|ယမန်နေ့|yesterday/)?.[0] || '';
+                matched = normalized.match(/မနေ့က|မနေ့|ယမန်နေ့|အရင်နေ့|ပြီးခဲ့တဲ့နေ့|yesterday/)?.[0] || '';
                 label = 'မနေ့က';
             } else if (dayMatch) {
                 const day = Number(dayMatch[1]);
@@ -980,7 +980,7 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             const todayStatusIntent = /ဒီနေ့|ယနေ့|today/.test(normalized) && /မှတ်ထား|မှတ်ပြီး|မှတ်မိ|ထည့်ပြီး|ထည့်ပြီး|စာရင်းရှိ|ရှိသေးလား|မေ့|လုပ်ပြီး/.test(normalized);
             const datedStatusIntent = /\d{1,2}\s*ရက်(?:နေ့)?/.test(normalized) && /မှတ်ထား|မှတ်ပြီး|မှတ်မိ|ထည့်ပြီး|ထည့်ပြီး|စာရင်းရှိ|ရှိသေးလား|မေ့|လုပ်ပြီး/.test(normalized);
             const generalQuestionIntent = /အကြံ|အကြံပေး|ဘယ်လို.*(?:လုပ်|ရ|သုံး)|သင့်လဲ|သင့်လဲ|ကောင်းမလဲ|ရအောင်|ဘာလဲ|ဘာဖြစ်/.test(normalized);
-            const wageAddIntent = /(?:ဒီနေ့|ယနေ့|မနေ့က|မနေ့|ယမန်နေ့|yesterday|\d{1,2}\s*ရက်(?:နေ့)?)\s*(?:\d+(?:\.\d+)?|စာရင်း|စရင်း|ဝင်ငွေ|အလုပ်လုပ်|လုပ်အားခ|ထည့်|ထည့်)?|(?:စာရင်း|စရင်း).*(?:သွင်း|ထည့်|ထည့်)|(?:တစ်နေ့စား|နေ့စားခ?).*(?:သွင်း|ထည့်|ထည့်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:\d|တစ်နာရီ|နှစ်နာရီ|သုံးနာရီ|လေးနာရီ)/.test(normalized);
+            const wageAddIntent = /(?:ဒီနေ့|ယနေ့|မနေ့က|မနေ့|ယမန်နေ့|အရင်နေ့|ပြီးခဲ့တဲ့နေ့|yesterday|\d{1,2}\s*ရက်(?:နေ့)?)\s*(?:\d+(?:\.\d+)?|စာရင်း|စရင်း|ဝင်ငွေ|အလုပ်လုပ်|လုပ်အားခ|ထည့်|ထည့်)?|(?:စာရင်း|စရင်း).*(?:သွင်း|ထည့်|ထည့်)|(?:တစ်နေ့စား|နေ့စားခ?).*(?:သွင်း|ထည့်|ထည့်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:\d|တစ်နာရီ|နှစ်နာရီ|သုံးနာရီ|လေးနာရီ)/.test(normalized);
             const wageTotalsIntent = /(?:လစာ|ဒီလ)\s*(?:ပေါင်း|တွက်|စု|စာရင်း|ဝင်ငွေ|ထွက်ငွေ)|(?:စုစုပေါင်း|ပေါင်းပေး|လက်ကျန်)|(?:ot|အိုတီ|အချိန်ပို).*(?:ပေါင်း|တွက်|စုစုပေါင်း|ဘယ်လောက်|ရပြီ|ရပြီး)|(?:ဝင်ငွေ|ထွက်ငွေ).*(?:ဘယ်လောက်|ရှိ|စု|ပေါင်း|တွက်)|\b(?:balance|total)\b/.test(normalized);
             try {
                 let result = '';
