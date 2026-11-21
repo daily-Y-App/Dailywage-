@@ -353,7 +353,7 @@
             </div>
             <div class="card">
                 <h3 style="margin-bottom:8px;">📣 ဖိတ်ခေါ်မှုအခြေအနေ</h3>
-                <div id="referralStats" class="referral-stat-grid"></div>
+                <div id="referralStats" class="referral-stat-grid"><div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>0</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>—</strong></div><div id="referralBalanceStat" class="referral-stat referral-balance-clickable" data-balance="0" role="button" tabindex="0" onclick="openReferralWithdrawal()" onkeydown="if(event.key==='Enter' || event.key===' ') openReferralWithdrawal()"><small>ဆုငွေလက်ကျန် (နှိပ်၍ထုတ်ရန်)</small><strong>0฿</strong></div><div class="referral-stat"><small>Claim Status</small><strong>မတင်ရသေး</strong></div></div>
                 <div id="referralStatus" class="referral-status">Referral data ရယူနေပါသည်...</div>
                 <div class="form-group" style="margin-top:16px;"><label>ဆုလက်ခံမည့် ဖုန်းနံပါတ်</label><input id="referralPhone" type="tel" inputmode="tel" placeholder="08xxxxxxxx"></div>
                 <button class="btn-save" type="button" onclick="submitReferralClaim()">🎁 ဆုတောင်းခံလွှာ တင်မည်</button>
@@ -806,8 +806,7 @@
             const downloadUrl = 'https://daily-y-app.github.io/Apk-download';
             const code = String(profile.code || '').trim().toUpperCase();
             const personalLink = code ? referralLink() : downloadUrl;
-            let balance = 0;
-            try { const snapshot = await firestore.collection('referralBalances').doc(profile.code).get(); balance = Number(snapshot.data()?.availableBalance || 0); } catch (error) { console.warn('Share balance read failed:', error); }
+            const balance = Number(document.getElementById('referralBalanceStat')?.dataset.balance || 0);
             const text = `ဖိတ်ခေါ်လိုက်ရုံနဲ့ ၂၀ဘတ်ရယူပါ\n(Daily Wage App ကို ဒီမှာ download လုပ်ပါ။ ${downloadUrl})\nRC: ${code || 'မသတ်မှတ်ရသေးပါ'}\nလက်ကျန်: ${balance}฿\nReferral Link: ${personalLink}`;
             try {
                 if (navigator.share) {
@@ -838,7 +837,7 @@
                 const balance = balanceSnapshot.exists ? balanceSnapshot.data() : { availableBalance: 0 };
                 const stats = document.getElementById('referralStats');
                 const activity = referralActivitySnapshot();
-                if (stats) stats.innerHTML = `<div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>${activity.recordCount}</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>${data?.activity?.appOpenCount || '—'}</strong></div><div id="referralBalanceStat" class="referral-stat referral-balance-clickable" role="button" tabindex="0" onclick="openReferralWithdrawal()" onkeydown="if(event.key==='Enter' || event.key===' ') openReferralWithdrawal()"><small>ဆုငွေလက်ကျန် (နှိပ်၍ထုတ်ရန်)</small><strong>${Number(balance.availableBalance || 0)}฿</strong></div><div class="referral-stat"><small>Claim Status</small><strong>${data?.status || 'မတင်ရသေး'}</strong></div>`;
+                if (stats) stats.innerHTML = `<div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>${activity.recordCount}</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>${data?.activity?.appOpenCount || '—'}</strong></div><div id="referralBalanceStat" class="referral-stat referral-balance-clickable" data-balance="${Number(balance.availableBalance || 0)}" role="button" tabindex="0" onclick="openReferralWithdrawal()" onkeydown="if(event.key==='Enter' || event.key===' ') openReferralWithdrawal()"><small>ဆုငွေလက်ကျန် (နှိပ်၍ထုတ်ရန်)</small><strong>${Number(balance.availableBalance || 0)}฿</strong></div><div class="referral-stat"><small>Claim Status</small><strong>${data?.status || 'မတင်ရသေး'}</strong></div>`;
                 const emailInput = document.getElementById('referralWithdrawEmail'); if (emailInput && !emailInput.value) emailInput.value = profile.email || '';
                 if (status && !status.innerText.includes('မှတ်တမ်းတင်ပြီး')) status.innerText = data ? `Claim status: ${data.status}။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။` : (referralAttribution ? `ဖိတ်ခေါ်သူ ${referralAttribution.referrerCode} မှတ်တမ်းတင်ထားပါတယ်။` : 'Referral link ဖြင့် ဝင်လာပြီးမှ ဆုတောင်းခံနိုင်ပါတယ်။');
                 const link = document.getElementById('referralLink'); if (link) link.value = referralLink();
