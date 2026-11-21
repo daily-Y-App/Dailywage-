@@ -855,13 +855,18 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             return `${dateInfo.label} (${date}) စာရင်းသွင်းပြီးပါပြီ။\nနေ့စားခ = ${assistantMoney(baseAmount)}\nOT နာရီ = ${otHours.toFixed(1)} နာရီ\nOT နှုန်း = ${assistantMoney(otRate)} / နာရီ\nOT ငွေ = ${assistantMoney(otPay)}\nစုစုပေါင်း = ${assistantMoney(amount)}`;
         }
 
-        function assistantTodayStatus() {
-            const date = new Date().toISOString().slice(0, 10);
-            const todayIncome = records.find(record => record.date === date && record.type === 'income');
-            if (!todayIncome) return 'ဒီနေ့အတွက် ဝင်ငွေ/နေ့စားစာရင်း မမှတ်ထားရသေးပါ။ လိုရင် “တစ်နေ့စားစာရင်းထည့်ပေး” လို့ ခိုင်းနိုင်ပါတယ်။';
-            const details = todayIncome.details || {};
+        function assistantRecordStatus(command = 'ဒီနေ့') {
+            const normalized = normalizeAssistantDigits(command).toLowerCase();
+            const dateInfo = parseAssistantEntryDate(normalized);
+            const income = records.find(record => record.date === dateInfo.date && record.type === 'income');
+            if (!income) return `${dateInfo.label} (${dateInfo.date}) အတွက် ဝင်ငွေ/နေ့စားစာရင်း မမှတ်ထားရသေးပါ။ လိုရင် “${dateInfo.label} စာရင်းထည့်ပေး” လို့ ခိုင်းနိုင်ပါတယ်။`;
+            const details = income.details || {};
             const otHours = Number(details.o || 0);
-            return `ဒီနေ့စာရင်း မှတ်ထားပြီးပါပြီ။\nပမာဏ = ${assistantMoney(Number(todayIncome.amt || 0))}\nအလုပ်ချိန် = ${Number(details.h || 0).toFixed(1)} နာရီ${otHours ? `\nOT = ${otHours} နာရီ` : ''}${todayIncome.time ? `\nအချိန် = ${todayIncome.time}` : ''}`;
+            return `${dateInfo.label} (${dateInfo.date}) စာရင်း မှတ်ထားပြီးပါပြီ။\nပမာဏ = ${assistantMoney(Number(income.amt || 0))}\nအလုပ်ချိန် = ${Number(details.h || 0).toFixed(1)} နာရီ${otHours ? `\nOT = ${otHours} နာရီ` : ''}${income.time ? `\nအချိန် = ${income.time}` : ''}`;
+        }
+
+        function assistantTodayStatus() {
+            return assistantRecordStatus('ဒီနေ့');
         }
 
         const SMART_CHAT_KEY = 'dailywage_ai_chat_history';
@@ -973,13 +978,14 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             if (answer) answer.innerText = '';
             const normalized = normalizeAssistantDigits(text).toLowerCase();
             const todayStatusIntent = /ဒီနေ့|ယနေ့|today/.test(normalized) && /မှတ်ထား|မှတ်ပြီး|မှတ်မိ|ထည့်ပြီး|ထည့်ပြီး|စာရင်းရှိ|ရှိသေးလား|မေ့|လုပ်ပြီး/.test(normalized);
+            const datedStatusIntent = /\d{1,2}\s*ရက်(?:နေ့)?/.test(normalized) && /မှတ်ထား|မှတ်ပြီး|မှတ်မိ|ထည့်ပြီး|ထည့်ပြီး|စာရင်းရှိ|ရှိသေးလား|မေ့|လုပ်ပြီး/.test(normalized);
             const generalQuestionIntent = /အကြံ|အကြံပေး|ဘယ်လို.*(?:လုပ်|ရ|သုံး)|သင့်လဲ|သင့်လဲ|ကောင်းမလဲ|ရအောင်|ဘာလဲ|ဘာဖြစ်/.test(normalized);
             const wageAddIntent = /(?:ဒီနေ့|ယနေ့|မနေ့က|မနေ့|ယမန်နေ့|yesterday|\d{1,2}\s*ရက်(?:နေ့)?)\s*(?:\d+(?:\.\d+)?|စာရင်း|စရင်း|ဝင်ငွေ|အလုပ်လုပ်|လုပ်အားခ|ထည့်|ထည့်)?|(?:စာရင်း|စရင်း).*(?:သွင်း|ထည့်|ထည့်)|(?:တစ်နေ့စား|နေ့စားခ?).*(?:သွင်း|ထည့်|ထည့်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:\d|တစ်နာရီ|နှစ်နာရီ|သုံးနာရီ|လေးနာရီ)/.test(normalized);
             const wageTotalsIntent = /(?:လစာ|ဒီလ)\s*(?:ပေါင်း|တွက်|စု|စာရင်း|ဝင်ငွေ|ထွက်ငွေ)|(?:စုစုပေါင်း|ပေါင်းပေး|လက်ကျန်)|(?:ot|အိုတီ|အချိန်ပို)\s*(?:ပေါင်း|တွက်)|(?:ဝင်ငွေ|ထွက်ငွေ).*(?:ဘယ်လောက်|ရှိ|စု|ပေါင်း|တွက်)|\b(?:balance|total)\b/.test(normalized);
             try {
                 let result = '';
-                if (todayStatusIntent) {
-                    result = assistantTodayStatus();
+                if (todayStatusIntent || datedStatusIntent) {
+                    result = assistantRecordStatus(text);
                 } else if (generalQuestionIntent) {
                     result = localAssistantReply(text) || await askPollinations(text);
                 } else if (wageAddIntent) {
