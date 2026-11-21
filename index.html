@@ -810,7 +810,7 @@
             const text = `ဖိတ်ခေါ်လိုက်ရုံနဲ့ ၂၀ဘတ်ရယူပါ\n(Daily Wage App ကို ဒီမှာ download လုပ်ပါ။ ${downloadUrl})\nRC: ${code || 'မသတ်မှတ်ရသေးပါ'}\nလက်ကျန်: ${balance}฿\nReferral Link: ${personalLink}`;
             try {
                 if (navigator.share) {
-                    await navigator.share({ title: 'Daily Wage App', text, url: personalLink });
+                    await navigator.share({ title: 'Daily Wage App', text });
                     return;
                 }
                 await navigator.clipboard.writeText(text);
