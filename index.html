@@ -214,6 +214,7 @@
         .avatar-choices { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin: 12px 0 4px; }
         .avatar-choice { border: 1px solid #dbeafe; border-radius: 10px; background: #fff; padding: 7px 2px; font-size: 24px; cursor: pointer; transition: .2s; }
         .avatar-choice:hover, .avatar-choice.selected { background: #dbeafe; border-color: var(--primary); transform: translateY(-1px); }
+        .share-top-link { color: #fff; text-decoration: none; font-size: 12px; font-weight: 800; padding: 8px 9px; border-radius: 10px; background: rgba(255,255,255,.16); white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -241,6 +242,7 @@
             <option value="en">🇺🇸 EN</option>
             <option value="th">🇹🇭 TH</option>
         </select>
+        <a id="shareRepoLink" class="share-top-link" href="https://daily-y-app.github.io/Dailywage-Share/?code=EMP001" target="_blank" rel="noopener noreferrer">📤 Share</a>
     </div>
 
     <div class="content">
@@ -344,24 +346,6 @@
             </div>
         </div>
 
-        <div id="referral" class="page">
-            <div class="referral-hero">
-                <h3>🎁 သူငယ်ချင်းဖိတ်ခေါ်ပြီး ၂၀฿ ရယူပါ</h3>
-                <p>သူငယ်ချင်းတစ်ယောက်က သင့်လင့်ခ်နဲ့ DailyWage ကို အသုံးပြုပြီး စာရင်းသွင်းပါက Admin စိစစ်ပြီး ဆုငွေကို ဖုန်းဘေလ်အဖြစ် ပေးချေပါမယ်။ Campaign စုစုပေါင်း အများဆုံး ၁၀၀฿ ရနိုင်ပါတယ်။</p>
-                <div class="referral-link-row"><input id="referralLink" readonly><button type="button" onclick="copyReferralLink()">လင့်ခ်ကူး</button></div>
-                <button type="button" class="referral-share-button" onclick="shareDailyWageDownload()">📤 ဖိတ်ခေါ်ပါမည်</button>
-            </div>
-            <div class="card">
-                <h3 style="margin-bottom:8px;">📣 ဖိတ်ခေါ်မှုအခြေအနေ</h3>
-                <div id="referralStats" class="referral-stat-grid"><div class="referral-stat"><small>သင့်မှတ်တမ်း</small><strong>0</strong></div><div class="referral-stat"><small>App ဖွင့်အသုံးပြုမှု</small><strong>—</strong></div><div id="referralBalanceStat" class="referral-stat referral-balance-clickable" data-balance="0" role="button" tabindex="0" onclick="openReferralWithdrawal()" onkeydown="if(event.key==='Enter' || event.key===' ') openReferralWithdrawal()"><small>ဆုငွေလက်ကျန် (နှိပ်၍ထုတ်ရန်)</small><strong>0฿</strong></div><div class="referral-stat"><small>Claim Status</small><strong>မတင်ရသေး</strong></div></div>
-                <div id="referralStatus" class="referral-status">Referral data ရယူနေပါသည်...</div>
-                <div class="form-group" style="margin-top:16px;"><label>ဆုလက်ခံမည့် ဖုန်းနံပါတ်</label><input id="referralPhone" type="tel" inputmode="tel" placeholder="08xxxxxxxx"></div>
-                <button class="btn-save" type="button" onclick="submitReferralClaim()">🎁 ဆုတောင်းခံလွှာ တင်မည်</button>
-                <button class="btn-save" type="button" style="margin-top:18px;background:#047857;" onclick="openReferralWithdrawal()">💸 လက်ကျန်ငွေ ထုတ်ယူရန်</button>
-                <p class="referral-help">လိမ်လည်မှုကာကွယ်ရန် device တစ်ခုလျှင် referral တစ်ကြိမ်၊ ဖုန်းနံပါတ်တစ်ခုလျှင် ဆုတစ်ကြိမ်သာ ခွင့်ပြုထားပါတယ်။ Admin စိစစ်ပြီးမှ Paid ဖြစ်ပါမယ်။</p>
-            </div>
-        </div>
-
         <div id="profile" class="page">
             <div class="card">
                 <h3 style="margin-bottom:15px;" class="t-profile">ကိုယ်ရေးအချက်အလက်</h3>
@@ -401,7 +385,6 @@
         <div class="nav-item" onclick="showPage('balance')"><span class="nav-icon">🧮</span><span class="nav-text t-balance">လက်ကျန်</span></div>
         <div class="nav-item" onclick="showPage('graph')"><span class="nav-icon">📊</span><span class="nav-text t-graph">ဂရပ်</span></div>
         <div class="nav-item" onclick="showPage('smart')"><span class="nav-icon">✨</span><span class="nav-text">AI</span></div>
-        <div class="nav-item" onclick="showPage('referral')"><span class="nav-icon">🎁</span><span class="nav-text t-referral">ဖိတ်ခေါ်</span></div>
     </div>
 
     <div id="successModal" class="modal"><div class="modal-content"><h2>✅ Success!</h2><button class="btn-save" style="margin-top:20px;" onclick="closeModal('successModal')">OK</button></div></div>
@@ -444,6 +427,8 @@
 
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
         let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
+        const shareRepoLink = document.getElementById('shareRepoLink');
+        if (shareRepoLink) shareRepoLink.href = `https://daily-y-app.github.io/Dailywage-Share/?code=${encodeURIComponent(profile.code || 'EMP001')}`;
         const profileCodeFromUrl = new URLSearchParams(location.search).get('code');
         if (profileCodeFromUrl) profile.code = profileCodeFromUrl;
         let myChart = null;
@@ -476,7 +461,7 @@
             });
         }
 
-        const navigationPages = ['income', 'expense', 'history', 'balance', 'graph', 'smart', 'referral'];
+        const navigationPages = ['income', 'expense', 'history', 'balance', 'graph', 'smart'];
 
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -490,7 +475,6 @@
             if(id === 'balance') updateBalance();
             if(id === 'history') renderList();
             if(id === 'graph') renderGraph();
-            if(id === 'referral') loadReferralClaimStatus();
         }
 
         function setupSwipeNavigation() {
