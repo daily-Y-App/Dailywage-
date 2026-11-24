@@ -215,6 +215,14 @@
         .avatar-choice { border: 1px solid #dbeafe; border-radius: 10px; background: #fff; padding: 7px 2px; font-size: 24px; cursor: pointer; transition: .2s; }
         .avatar-choice:hover, .avatar-choice.selected { background: #dbeafe; border-color: var(--primary); transform: translateY(-1px); }
         .share-top-link { color: #fff; text-decoration: none; font-size: 12px; font-weight: 800; padding: 8px 9px; border-radius: 10px; background: rgba(255,255,255,.16); white-space: nowrap; }
+        .invite-welcome-modal { display:none; position:fixed; inset:0; z-index:2500; align-items:center; justify-content:center; padding:22px; background:rgba(15,23,42,.72); backdrop-filter:blur(5px); }
+        .invite-welcome-modal.show { display:flex; }
+        .invite-welcome-card { width:min(390px,100%); position:relative; overflow:hidden; padding:26px 20px 20px; border-radius:24px; text-align:center; color:#fff; background:linear-gradient(145deg,#1a2a6c,#b21f1f 72%,#fdbb2d); box-shadow:0 20px 55px rgba(0,0,0,.35); cursor:pointer; }
+        .invite-welcome-card::before { content:'🎁'; display:block; font-size:48px; margin-bottom:8px; filter:drop-shadow(0 5px 8px rgba(0,0,0,.2)); }
+        .invite-welcome-card h2 { font-size:22px; margin-bottom:9px; }
+        .invite-welcome-card p { font-size:13px; line-height:1.6; opacity:.96; }
+        .invite-welcome-card .invite-reward-button { width:100%; margin-top:17px; padding:13px; border:0; border-radius:13px; color:#422006; background:#fdbb2d; font-weight:900; font-size:15px; cursor:pointer; }
+        .invite-welcome-close { position:absolute; top:8px; right:10px; width:34px; height:34px; border:0; border-radius:50%; color:#fff; background:rgba(255,255,255,.2); font-size:23px; line-height:1; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -242,7 +250,7 @@
             <option value="en">🇺🇸 EN</option>
             <option value="th">🇹🇭 TH</option>
         </select>
-        <a id="shareRepoLink" class="share-top-link" href="https://daily-y-app.github.io/Dailywage-Share/?code=EMP001" target="_blank" rel="noopener noreferrer">📤 Share</a>
+        <a id="shareRepoLink" class="share-top-link" href="https://daily-y-app.github.io/Dailywage-Share/?code=EMP001" target="_blank" rel="noopener noreferrer">📨 Invite</a>
     </div>
 
     <div class="content">
@@ -407,6 +415,14 @@
             <button class="btn-save" type="button" style="margin-top:10px;background:#64748b;" onclick="closeModal('withdrawalModal')">မလုပ်တော့ပါ</button>
         </div>
     </div>
+    <div id="inviteWelcomeModal" class="invite-welcome-modal" role="dialog" aria-modal="true" aria-labelledby="inviteWelcomeTitle" onclick="handleInviteWelcomeClick(event)">
+        <div class="invite-welcome-card" onclick="openInvitePage()">
+            <button class="invite-welcome-close" type="button" aria-label="Close" onclick="event.stopPropagation(); closeInviteWelcome()">×</button>
+            <h2 id="inviteWelcomeTitle">ဆုလက်ဆောင် ရယူလိုက်ပါ</h2>
+            <p>သူငယ်ချင်းတွေကို DailyWage App ဖိတ်ခေါ်ပြီး တစ်ယောက်လျှင် <strong>၂၀฿</strong> ရယူနိုင်ပါတယ်။ Campaign အများဆုံး <strong>၁၀၀฿</strong> အထိ ရနိုင်ပါတယ်။</p>
+            <button class="invite-reward-button" type="button" onclick="event.stopPropagation(); openInvitePage()">📨 Invite Page သို့သွားမည်</button>
+        </div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -427,10 +443,16 @@
 
         let records = JSON.parse(localStorage.getItem('f_recs')) || [];
         let profile = JSON.parse(localStorage.getItem('f_prof')) || { name:'User', code:'EMP001', wage:375, ot:69, lang:'my', av: '👷' };
-        const shareRepoLink = document.getElementById('shareRepoLink');
-        if (shareRepoLink) shareRepoLink.href = `https://daily-y-app.github.io/Dailywage-Share/?code=${encodeURIComponent(profile.code || 'EMP001')}`;
         const profileCodeFromUrl = new URLSearchParams(location.search).get('code');
         if (profileCodeFromUrl) profile.code = profileCodeFromUrl;
+        const shareRepoLink = document.getElementById('shareRepoLink');
+        function invitePageUrl() {
+            return `https://daily-y-app.github.io/Dailywage-Share/?code=${encodeURIComponent(profile.code || 'EMP001')}`;
+        }
+        function updateInviteLink() {
+            if (shareRepoLink) shareRepoLink.href = invitePageUrl();
+        }
+        updateInviteLink();
         let myChart = null;
         let firebaseListenerCode = null;
         let deviceId = profile.deviceId || '';
@@ -935,6 +957,7 @@
                 if (data.profile && data.profile.code === profile.code) {
                     profile = { ...profile, ...data.profile };
                     localStorage.setItem('f_prof', JSON.stringify(profile));
+                    updateInviteLink();
                     updateHeader();
                 }
             });
@@ -1483,6 +1506,25 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             document.getElementById('headName').innerText = profile.name;
             document.getElementById('headCode').innerText = "CODE: " + profile.code;
             renderAvatar();
+            updateInviteLink();
+        }
+
+        function openInvitePage() {
+            window.location.href = invitePageUrl();
+        }
+
+        function closeInviteWelcome() {
+            const modal = document.getElementById('inviteWelcomeModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        function handleInviteWelcomeClick(event) {
+            if (event.target && event.target.id === 'inviteWelcomeModal') openInvitePage();
+        }
+
+        function showInviteWelcome() {
+            const modal = document.getElementById('inviteWelcomeModal');
+            if (modal) modal.classList.add('show');
         }
 
         let pendingId = null;
@@ -1505,6 +1547,7 @@ OT ရငွေ ခန့်မှန်း = ${assistantMoney(totals.otPay)}`;
             document.getElementById('pPhone').value = profile.phone || '';
             document.getElementById('topLang').value = profile.lang;
             updateHeader(); setLang(profile.lang); renderSmartChatHistory(); syncFromFirebase(); initializeDeviceIdentity(); setupSwipeNavigation();
+            setTimeout(showInviteWelcome, 550);
         };
     </script>
     <script>
